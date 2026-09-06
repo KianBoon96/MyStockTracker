@@ -85,7 +85,6 @@ tickers = [
     "STM",
     "TSM",
 
-
     # --------------------------------------------------------
     # SEMICONDUCTOR EQUIPMENT
     # --------------------------------------------------------
@@ -95,7 +94,6 @@ tickers = [
     "KLIC",
     "KLAC",
     "TER",
-
 
     # --------------------------------------------------------
     # DATA CENTER / NETWORKING / OPTICAL
@@ -112,7 +110,6 @@ tickers = [
     "NOK",
     "SNDK",
     "TTMI",
-
 
     # --------------------------------------------------------
     # SOFTWARE / CYBERSECURITY
@@ -137,7 +134,6 @@ tickers = [
     "VEEV",
     "ZS",
 
-
     # --------------------------------------------------------
     # AI / CLOUD / INTERNET
     # --------------------------------------------------------
@@ -151,14 +147,12 @@ tickers = [
     "NFLX",
     "UBER",
 
-
     # --------------------------------------------------------
     # CONSUMER TECHNOLOGY
     # --------------------------------------------------------
 
     "AAPL",
     "TSLA",
-
 
     # --------------------------------------------------------
     # FINANCIALS / FINTECH / PAYMENTS / CRYPTO
@@ -173,14 +167,12 @@ tickers = [
     "MA",
     "V",
 
-
     # --------------------------------------------------------
     # HEALTHCARE
     # --------------------------------------------------------
 
     "BSX",
     "ISRG",
-
 
     # --------------------------------------------------------
     # AEROSPACE / DEFENSE / SPACE / AUTONOMOUS
@@ -195,7 +187,6 @@ tickers = [
     "SPCX",
     "XAR",
 
-
     # --------------------------------------------------------
     # INDUSTRIALS
     # --------------------------------------------------------
@@ -205,7 +196,6 @@ tickers = [
     "GE",
     "VRT",
 
-
     # --------------------------------------------------------
     # POWER / UTILITIES
     # --------------------------------------------------------
@@ -214,7 +204,6 @@ tickers = [
     "CEG",
     "VST",
 
-
     # --------------------------------------------------------
     # DATA CENTER / POWER INFRASTRUCTURE
     # --------------------------------------------------------
@@ -222,7 +211,6 @@ tickers = [
     "APLD",
     "CORZ",
     "IREN",
-
 
     # --------------------------------------------------------
     # MATERIALS / MINING / PRECIOUS METALS
@@ -234,7 +222,6 @@ tickers = [
     "NEM",
     "SCCO",
     "SLV",
-
 
     # --------------------------------------------------------
     # CONSUMER / RETAIL / RESTAURANTS / APPAREL
@@ -256,7 +243,6 @@ tickers = [
     "VSXY",
     "WMT",
 
-
     # --------------------------------------------------------
     # STATE STREET / SPDR SECTOR ETFs
     # --------------------------------------------------------
@@ -272,7 +258,6 @@ tickers = [
     "XLU",
     "XLV",
     "XLY",
-
 
     # --------------------------------------------------------
     # BONDS
@@ -293,7 +278,6 @@ tickers = list(dict.fromkeys(tickers))
 groups = {
 
     "Semiconductors": [
-
         "ALAB",
         "AMBA",
         "AMD",
@@ -310,9 +294,7 @@ groups = {
         "TSM",
     ],
 
-
     "Semiconductor Equipment": [
-
         "ASML",
         "ICHR",
         "KLIC",
@@ -320,9 +302,7 @@ groups = {
         "TER",
     ],
 
-
     "Data Center / Networking / Optical": [
-
         "AAOI",
         "ANET",
         "CIEN",
@@ -336,9 +316,7 @@ groups = {
         "TTMI",
     ],
 
-
     "Software / Cybersecurity": [
-
         "ADBE",
         "APP",
         "CRM",
@@ -359,9 +337,7 @@ groups = {
         "ZS",
     ],
 
-
     "AI / Cloud / Internet": [
-
         "AMZN",
         "CRWV",
         "GOOG",
@@ -372,16 +348,12 @@ groups = {
         "UBER",
     ],
 
-
     "Consumer Technology": [
-
         "AAPL",
         "TSLA",
     ],
 
-
     "Financials / Fintech / Payments": [
-
         "AXP",
         "COIN",
         "CRCL",
@@ -392,16 +364,12 @@ groups = {
         "V",
     ],
 
-
     "Healthcare": [
-
         "BSX",
         "ISRG",
     ],
 
-
     "Aerospace / Defense / Space / Autonomous": [
-
         "ASTS",
         "AVAV",
         "BA",
@@ -412,34 +380,26 @@ groups = {
         "XAR",
     ],
 
-
     "Industrials": [
-
         "AGX",
         "CAT",
         "GE",
         "VRT",
     ],
 
-
     "Power / Utilities": [
-
         "BE",
         "CEG",
         "VST",
     ],
 
-
     "Data Center / Power Infrastructure": [
-
         "APLD",
         "CORZ",
         "IREN",
     ],
 
-
     "Materials / Mining / Precious Metals": [
-
         "AA",
         "FCX",
         "GLD",
@@ -448,9 +408,7 @@ groups = {
         "SLV",
     ],
 
-
     "Consumer / Retail / Restaurants": [
-
         "AEO",
         "ANF",
         "BBY",
@@ -468,9 +426,7 @@ groups = {
         "WMT",
     ],
 
-
     "Sector ETFs": [
-
         "XLB",
         "XLC",
         "XLE",
@@ -484,9 +440,7 @@ groups = {
         "XLY",
     ],
 
-
     "Bonds": [
-
         "TLT",
     ],
 }
@@ -497,7 +451,6 @@ category_map = {}
 for category, symbols in groups.items():
 
     for ticker in symbols:
-
         category_map[ticker] = category
 
 
@@ -516,7 +469,6 @@ yf_aliases = {
 
 
 def yf_symbol(ticker):
-
     return yf_aliases.get(
         ticker,
         ticker
@@ -528,27 +480,21 @@ def yf_symbol(ticker):
 # ============================================================
 
 TIMEFRAMES = {
-
     "Daily": 1,
-
     "Weekly": 5,
-
     "Monthly": 21,
-
     "Semi-Annual": 126,
-
     "Annual": 252,
 }
 
 
 # ============================================================
-# FORMATTING FUNCTIONS
+# FORMATTING
 # ============================================================
 
 def format_market_cap(value):
 
     if pd.isna(value):
-
         return "N/A"
 
     return f"{value / 1e9:,.1f} B"
@@ -557,7 +503,6 @@ def format_market_cap(value):
 def format_revenue(value):
 
     if pd.isna(value):
-
         return "N/A"
 
     return f"{value / 1e9:,.1f} B"
@@ -566,7 +511,6 @@ def format_revenue(value):
 def format_percent(value):
 
     if pd.isna(value):
-
         return "N/A"
 
     return f"{value:+.2%}"
@@ -575,7 +519,6 @@ def format_percent(value):
 def format_number(value):
 
     if pd.isna(value):
-
         return "N/A"
 
     return f"{value:.2f}"
@@ -584,86 +527,9 @@ def format_number(value):
 def format_ratio(value):
 
     if pd.isna(value):
-
         return "N/A"
 
     return f"{value:.2f}"
-
-
-# ============================================================
-# RETURN CALCULATION
-# ============================================================
-
-def calculate_return(
-    prices,
-    days
-):
-
-    if prices is None:
-
-        return np.nan
-
-
-    if len(prices) < days + 1:
-
-        return np.nan
-
-
-    try:
-
-        return (
-
-            prices.iloc[-1]
-            /
-            prices.iloc[-days - 1]
-
-        ) - 1
-
-    except Exception:
-
-        return np.nan
-
-
-# ============================================================
-# REALISED VOLATILITY
-# ============================================================
-
-def calculate_volatility(
-    returns,
-    days
-):
-
-    if returns is None:
-
-        return np.nan
-
-
-    if len(returns) < days:
-
-        return np.nan
-
-
-    try:
-
-        window = returns.iloc[-days:]
-
-
-        if len(window) < 2:
-
-            return np.nan
-
-
-        return (
-
-            window.std()
-            *
-            np.sqrt(252)
-
-        )
-
-    except Exception:
-
-        return np.nan
 
 
 # ============================================================
@@ -674,45 +540,27 @@ def calculate_volatility(
     ttl=3600,
     show_spinner=False
 )
-def download_price_data(
-    ticker_list
-):
+def download_price_data(ticker_list):
 
     price_data = {}
 
-
     def download_one(ticker):
 
-        symbol = yf_symbol(
-            ticker
-        )
-
+        symbol = yf_symbol(ticker)
 
         try:
 
             data = yf.download(
-
                 symbol,
-
                 period="2y",
-
                 interval="1d",
-
                 auto_adjust=True,
-
                 progress=False,
-
                 threads=False,
             )
 
-
-            if (
-                data is None
-                or data.empty
-            ):
-
+            if data is None or data.empty:
                 return ticker, None
-
 
             if isinstance(
                 data.columns,
@@ -725,27 +573,17 @@ def download_price_data(
 
             else:
 
-                close = data[
-                    "Close"
-                ]
-
+                close = data["Close"]
 
             close = pd.to_numeric(
                 close,
                 errors="coerce"
-            )
+            ).dropna()
 
-
-            close = close.dropna()
-
-
-            if len(close) < 10:
-
+            if len(close) < 2:
                 return ticker, None
 
-
             return ticker, close
-
 
         except Exception:
 
@@ -757,19 +595,14 @@ def download_price_data(
     ) as executor:
 
         futures = {
-
             executor.submit(
                 download_one,
                 ticker
             ): ticker
-
             for ticker in ticker_list
         }
 
-
-        for future in as_completed(
-            futures
-        ):
+        for future in as_completed(futures):
 
             try:
 
@@ -777,16 +610,10 @@ def download_price_data(
                     future.result()
                 )
 
-
                 if prices is not None:
-
-                    price_data[
-                        ticker
-                    ] = prices
-
+                    price_data[ticker] = prices
 
             except Exception:
-
                 pass
 
 
@@ -801,105 +628,80 @@ def download_price_data(
     ttl=21600,
     show_spinner=False
 )
-def get_fundamental_data(
-    ticker_list
-):
+def get_fundamental_data(ticker_list):
 
     rows = []
-
 
     def get_one(ticker):
 
         result = {
 
-            "Ticker":
+            "Ticker": ticker,
+
+            "Category": category_map.get(
                 ticker,
+                "Other"
+            ),
 
-            "Category":
-                category_map.get(
-                    ticker,
-                    "Other"
-                ),
+            "Market Cap": np.nan,
 
-            "Market Cap":
-                np.nan,
+            "EPS Next Year": np.nan,
 
-            "EPS Next Year":
-                np.nan,
+            "EPS Following Year": np.nan,
 
-            "EPS Following Year":
-                np.nan,
+            "Revenue Next Year": np.nan,
 
-            "Revenue Next Year":
-                np.nan,
+            "Revenue Following Year": np.nan,
 
-            "Revenue Following Year":
-                np.nan,
+            "EPS Growth Next Year": np.nan,
 
-            "EPS Growth Next Year":
-                np.nan,
+            "EPS Growth Following Year": np.nan,
 
-            "EPS Growth Following Year":
-                np.nan,
+            "Revenue Growth Next Year": np.nan,
 
-            "Revenue Growth Next Year":
-                np.nan,
-
-            "Revenue Growth Following Year":
-                np.nan,
+            "Revenue Growth Following Year": np.nan,
         }
 
-
-        symbol = yf_symbol(
-            ticker
-        )
-
+        symbol = yf_symbol(ticker)
 
         try:
 
-            stock = yf.Ticker(
-                symbol
-            )
+            stock = yf.Ticker(symbol)
 
-
-            # ==================================================
+            # ------------------------------------------------
             # MARKET CAP
-            # ==================================================
+            # ------------------------------------------------
 
             try:
 
                 info = stock.info
 
-
                 market_cap = info.get(
                     "marketCap"
                 )
 
-
                 if market_cap is not None:
 
-                    result[
-                        "Market Cap"
-                    ] = pd.to_numeric(
-                        market_cap,
-                        errors="coerce"
+                    result["Market Cap"] = (
+                        pd.to_numeric(
+                            market_cap,
+                            errors="coerce"
+                        )
                     )
 
             except Exception:
-
                 pass
 
 
-            # ==================================================
+            # ------------------------------------------------
             # EPS ESTIMATES
-            # ==================================================
+            # ------------------------------------------------
 
             try:
 
                 estimates = (
                     stock.get_earnings_estimate()
                 )
-
 
                 if (
                     estimates is not None
@@ -908,82 +710,65 @@ def get_fundamental_data(
 
                     if "+1y" in estimates.index:
 
+                        row = estimates.loc["+1y"]
+
                         result[
                             "EPS Next Year"
                         ] = pd.to_numeric(
-
-                            estimates.loc[
-                                "+1y"
-                            ].get(
+                            row.get(
                                 "avg",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
-
 
                         result[
                             "EPS Growth Next Year"
                         ] = pd.to_numeric(
-
-                            estimates.loc[
-                                "+1y"
-                            ].get(
+                            row.get(
                                 "growth",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
 
-
                     if "+2y" in estimates.index:
+
+                        row = estimates.loc["+2y"]
 
                         result[
                             "EPS Following Year"
                         ] = pd.to_numeric(
-
-                            estimates.loc[
-                                "+2y"
-                            ].get(
+                            row.get(
                                 "avg",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
-
 
                         result[
                             "EPS Growth Following Year"
                         ] = pd.to_numeric(
-
-                            estimates.loc[
-                                "+2y"
-                            ].get(
+                            row.get(
                                 "growth",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
 
             except Exception:
-
                 pass
 
 
-            # ==================================================
+            # ------------------------------------------------
             # REVENUE ESTIMATES
-            # ==================================================
+            # ------------------------------------------------
 
             try:
 
                 revenue_estimates = (
                     stock.get_revenue_estimate()
                 )
-
 
                 if (
                     revenue_estimates is not None
@@ -992,76 +777,57 @@ def get_fundamental_data(
 
                     if "+1y" in revenue_estimates.index:
 
+                        row = revenue_estimates.loc["+1y"]
+
                         result[
                             "Revenue Next Year"
                         ] = pd.to_numeric(
-
-                            revenue_estimates.loc[
-                                "+1y"
-                            ].get(
+                            row.get(
                                 "avg",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
-
 
                         result[
                             "Revenue Growth Next Year"
                         ] = pd.to_numeric(
-
-                            revenue_estimates.loc[
-                                "+1y"
-                            ].get(
+                            row.get(
                                 "growth",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
 
-
                     if "+2y" in revenue_estimates.index:
+
+                        row = revenue_estimates.loc["+2y"]
 
                         result[
                             "Revenue Following Year"
                         ] = pd.to_numeric(
-
-                            revenue_estimates.loc[
-                                "+2y"
-                            ].get(
+                            row.get(
                                 "avg",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
-
 
                         result[
                             "Revenue Growth Following Year"
                         ] = pd.to_numeric(
-
-                            revenue_estimates.loc[
-                                "+2y"
-                            ].get(
+                            row.get(
                                 "growth",
                                 np.nan
                             ),
-
                             errors="coerce"
                         )
 
             except Exception:
-
                 pass
 
-
         except Exception:
-
             pass
-
 
         return result
 
@@ -1071,99 +837,218 @@ def get_fundamental_data(
     ) as executor:
 
         futures = {
-
             executor.submit(
                 get_one,
                 ticker
             ): ticker
-
             for ticker in ticker_list
         }
 
-
-        for future in as_completed(
-            futures
-        ):
+        for future in as_completed(futures):
 
             try:
-
                 rows.append(
                     future.result()
                 )
-
             except Exception:
-
                 pass
 
 
-    return pd.DataFrame(
-        rows
-    )
+    return pd.DataFrame(rows)
 
 
 # ============================================================
-# PERFORMANCE DATAFRAME
+# PERFORMANCE CALCULATION
 # ============================================================
 
-def calculate_performance(
-    price_data
-):
+def calculate_performance(price_data):
 
     rows = []
 
+    for ticker, prices in price_data.items():
 
-    for ticker, prices in (
-        price_data.items()
-    ):
+        try:
 
-        daily_returns = (
-            prices
-            .pct_change()
-            .dropna()
-        )
+            prices = pd.to_numeric(
+                prices,
+                errors="coerce"
+            ).dropna()
 
+            if len(prices) < 2:
+                continue
 
-        row = {
+            daily_returns = (
+                prices
+                .pct_change()
+                .dropna()
+            )
 
-            "Ticker":
-                ticker,
+            row = {
 
-            "Category":
-                category_map.get(
+                "Ticker": ticker,
+
+                "Category": category_map.get(
                     ticker,
                     "Other"
                 ),
-        }
+            }
 
 
-        for timeframe, days in (
-            TIMEFRAMES.items()
-        ):
+            # ==================================================
+            # RETURNS
+            # ==================================================
 
-            row[
-                f"{timeframe} Return"
-            ] = calculate_return(
-                prices,
-                days
-            )
+            if len(prices) >= 2:
 
+                row["Daily Return"] = (
+                    prices.iloc[-1] /
+                    prices.iloc[-2]
+                ) - 1
 
-            row[
-                f"{timeframe} Volatility"
-            ] = calculate_volatility(
-                daily_returns,
-                days
-            )
+            else:
+
+                row["Daily Return"] = np.nan
 
 
-        rows.append(
-            row
-        )
+            if len(prices) >= 6:
+
+                row["Weekly Return"] = (
+                    prices.iloc[-1] /
+                    prices.iloc[-6]
+                ) - 1
+
+            else:
+
+                row["Weekly Return"] = np.nan
 
 
-    return pd.DataFrame(
-        rows
-    )
+            if len(prices) >= 22:
+
+                row["Monthly Return"] = (
+                    prices.iloc[-1] /
+                    prices.iloc[-22]
+                ) - 1
+
+            else:
+
+                row["Monthly Return"] = np.nan
+
+
+            if len(prices) >= 127:
+
+                row["Semi-Annual Return"] = (
+                    prices.iloc[-1] /
+                    prices.iloc[-127]
+                ) - 1
+
+            else:
+
+                row["Semi-Annual Return"] = np.nan
+
+
+            if len(prices) >= 253:
+
+                row["Annual Return"] = (
+                    prices.iloc[-1] /
+                    prices.iloc[-253]
+                ) - 1
+
+            else:
+
+                row["Annual Return"] = np.nan
+
+
+            # ==================================================
+            # REALISED VOLATILITY
+            # ==================================================
+
+            # Daily:
+            # Recent 20 trading days
+            if len(daily_returns) >= 5:
+
+                row["Daily Volatility"] = (
+                    daily_returns
+                    .tail(20)
+                    .std()
+                    * np.sqrt(252)
+                )
+
+            else:
+
+                row["Daily Volatility"] = np.nan
+
+
+            # Weekly:
+            # Recent 60 trading days
+            if len(daily_returns) >= 20:
+
+                row["Weekly Volatility"] = (
+                    daily_returns
+                    .tail(60)
+                    .std()
+                    * np.sqrt(252)
+                )
+
+            else:
+
+                row["Weekly Volatility"] = np.nan
+
+
+            # Monthly:
+            # Recent 126 trading days
+            if len(daily_returns) >= 60:
+
+                row["Monthly Volatility"] = (
+                    daily_returns
+                    .tail(126)
+                    .std()
+                    * np.sqrt(252)
+                )
+
+            else:
+
+                row["Monthly Volatility"] = np.nan
+
+
+            # Semi Annual:
+            # Recent 252 trading days
+            if len(daily_returns) >= 126:
+
+                row["Semi-Annual Volatility"] = (
+                    daily_returns
+                    .tail(252)
+                    .std()
+                    * np.sqrt(252)
+                )
+
+            else:
+
+                row["Semi-Annual Volatility"] = np.nan
+
+
+            # Annual:
+            # Recent 252 trading days
+            if len(daily_returns) >= 252:
+
+                row["Annual Volatility"] = (
+                    daily_returns
+                    .tail(252)
+                    .std()
+                    * np.sqrt(252)
+                )
+
+            else:
+
+                row["Annual Volatility"] = np.nan
+
+
+            rows.append(row)
+
+        except Exception:
+            continue
+
+
+    return pd.DataFrame(rows)
 
 
 # ============================================================
@@ -1179,7 +1064,6 @@ def render_heatmap(
     return_col = (
         f"{timeframe} Return"
     )
-
 
     df = performance_df[
         [
@@ -1221,9 +1105,7 @@ def render_heatmap(
 
 
     df = df.dropna(
-        subset=[
-            return_col
-        ]
+        subset=[return_col]
     )
 
 
@@ -1247,7 +1129,6 @@ def render_heatmap(
     # --------------------------------------------------------
 
     columns = 8
-
 
     rows = int(
         np.ceil(
@@ -1281,19 +1162,15 @@ def render_heatmap(
     ):
 
         r = i // columns
-
         c = i % columns
-
 
         z[r, c] = row[
             return_col
         ]
 
-
         ticker_grid[r, c] = (
             row["Ticker"]
         )
-
 
         cap_grid[r, c] = (
             format_market_cap(
@@ -1345,7 +1222,6 @@ def render_heatmap(
             ),
 
             hovertemplate=(
-
                 "<b>%{customdata[0]}</b>"
                 "<br>"
                 "Return: %{z:+.2%}"
@@ -1373,20 +1249,15 @@ def render_heatmap(
                 ticker_grid[r, c]
             )
 
-
             if ticker == "":
-
                 continue
 
-
             ret = z[r, c]
-
 
             cap = cap_grid[
                 r,
                 c
             ]
-
 
             fig.add_annotation(
 
@@ -1395,7 +1266,6 @@ def render_heatmap(
                 y=r,
 
                 text=(
-
                     f"<b>{ticker}</b>"
                     f"<br>"
                     f"{ret:+.2%}"
@@ -1427,42 +1297,29 @@ def render_heatmap(
         ),
 
         xaxis=dict(
-
             showticklabels=False,
-
             showgrid=False,
-
             zeroline=False
         ),
 
         yaxis=dict(
-
             showticklabels=False,
-
             showgrid=False,
-
             zeroline=False,
-
             autorange="reversed"
         ),
 
         margin=dict(
-
             l=10,
-
             r=10,
-
             t=60,
-
             b=10
         )
     )
 
 
     st.plotly_chart(
-
         fig,
-
         use_container_width=True
     )
 
@@ -1500,80 +1357,43 @@ def prepare_main_table(
     columns = [
 
         "Ticker",
-
         "Category",
-
         "Market Cap",
 
-
-        # RETURNS
-
         "Daily Return",
-
         "Weekly Return",
-
         "Monthly Return",
-
         "Semi-Annual Return",
-
         "Annual Return",
 
-
-        # VOLATILITY
-
         "Daily Volatility",
-
         "Weekly Volatility",
-
         "Monthly Volatility",
-
         "Semi-Annual Volatility",
-
         "Annual Volatility",
 
-
-        # EPS
-
         "EPS Next Year",
-
         "EPS Following Year",
 
-
-        # REVENUE
-
         "Revenue Next Year",
-
         "Revenue Following Year",
 
-
-        # EPS GROWTH
-
         "EPS Growth Next Year",
-
         "EPS Growth Following Year",
 
-
-        # REVENUE GROWTH
-
         "Revenue Growth Next Year",
-
         "Revenue Growth Following Year",
     ]
 
 
     columns = [
-
         col
-
         for col in columns
-
         if col in df.columns
     ]
 
 
-    return df[
-        columns
-    ]
+    return df[columns]
 
 
 # ============================================================
@@ -1622,7 +1442,7 @@ def apply_filters(df):
 
 
     # --------------------------------------------------------
-    # TICKER
+    # TICKERS
     # --------------------------------------------------------
 
     with col2:
@@ -1694,7 +1514,6 @@ def apply_filters(df):
     if search:
 
         filtered = filtered[
-
             filtered[
                 "Ticker"
             ]
@@ -1707,7 +1526,7 @@ def apply_filters(df):
 
 
     # ========================================================
-    # ADVANCED FILTER
+    # ADVANCED NUMERIC FILTER
     # ========================================================
 
     with st.expander(
@@ -1745,11 +1564,8 @@ def apply_filters(df):
 
 
         available = [
-
             col
-
             for col in numeric_columns
-
             if col in filtered.columns
         ]
 
@@ -1757,19 +1573,13 @@ def apply_filters(df):
         if available:
 
             metric = st.selectbox(
-
                 "Metric",
-
                 available
             )
 
 
             series = pd.to_numeric(
-
-                filtered[
-                    metric
-                ],
-
+                filtered[metric],
                 errors="coerce"
             ).dropna()
 
@@ -1807,11 +1617,7 @@ def apply_filters(df):
                     filtered = filtered[
 
                         pd.to_numeric(
-
-                            filtered[
-                                metric
-                            ],
-
+                            filtered[metric],
                             errors="coerce"
                         )
                         .between(
@@ -1841,15 +1647,10 @@ def format_main_table(df):
 
         display[
             "Market Cap"
-        ] = (
-
-            display[
-                "Market Cap"
-            ]
-
-            .apply(
-                format_market_cap
-            )
+        ] = display[
+            "Market Cap"
+        ].apply(
+            format_market_cap
         )
 
 
@@ -1860,13 +1661,9 @@ def format_main_table(df):
     return_columns = [
 
         "Daily Return",
-
         "Weekly Return",
-
         "Monthly Return",
-
         "Semi-Annual Return",
-
         "Annual Return",
     ]
 
@@ -1876,12 +1673,8 @@ def format_main_table(df):
         if col in display.columns:
 
             display[col] = (
-
                 display[col]
-
-                .apply(
-                    format_percent
-                )
+                .apply(format_percent)
             )
 
 
@@ -1892,13 +1685,9 @@ def format_main_table(df):
     volatility_columns = [
 
         "Daily Volatility",
-
         "Weekly Volatility",
-
         "Monthly Volatility",
-
         "Semi-Annual Volatility",
-
         "Annual Volatility",
     ]
 
@@ -1908,12 +1697,8 @@ def format_main_table(df):
         if col in display.columns:
 
             display[col] = (
-
                 display[col]
-
-                .apply(
-                    format_percent
-                )
+                .apply(format_percent)
             )
 
 
@@ -1924,7 +1709,6 @@ def format_main_table(df):
     eps_columns = [
 
         "EPS Next Year",
-
         "EPS Following Year",
     ]
 
@@ -1934,12 +1718,8 @@ def format_main_table(df):
         if col in display.columns:
 
             display[col] = (
-
                 display[col]
-
-                .apply(
-                    format_number
-                )
+                .apply(format_number)
             )
 
 
@@ -1950,7 +1730,6 @@ def format_main_table(df):
     revenue_columns = [
 
         "Revenue Next Year",
-
         "Revenue Following Year",
     ]
 
@@ -1960,12 +1739,8 @@ def format_main_table(df):
         if col in display.columns:
 
             display[col] = (
-
                 display[col]
-
-                .apply(
-                    format_revenue
-                )
+                .apply(format_revenue)
             )
 
 
@@ -1976,11 +1751,9 @@ def format_main_table(df):
     growth_columns = [
 
         "EPS Growth Next Year",
-
         "EPS Growth Following Year",
 
         "Revenue Growth Next Year",
-
         "Revenue Growth Following Year",
     ]
 
@@ -1990,12 +1763,8 @@ def format_main_table(df):
         if col in display.columns:
 
             display[col] = (
-
                 display[col]
-
-                .apply(
-                    format_percent
-                )
+                .apply(format_percent)
             )
 
 
@@ -2060,15 +1829,31 @@ st.sidebar.markdown(
     """
 ### Methodology
 
-**Return**
+**Returns**
 
 Price return over the selected
 lookback period.
 
 **Realised Volatility**
 
-Standard deviation of daily returns
+Standard deviation of daily returns,
 annualised by √252.
+
+**Daily volatility**
+
+20 trading-day realised volatility.
+
+**Weekly volatility**
+
+60 trading-day realised volatility.
+
+**Monthly volatility**
+
+126 trading-day realised volatility.
+
+**6M / 1Y volatility**
+
+252 trading-day realised volatility.
 
 **Market Cap**
 
@@ -2078,11 +1863,11 @@ Yahoo Finance market capitalisation.
 
 Yahoo Finance analyst estimates.
 
-**6M**
+**6M return**
 
 126 trading days.
 
-**1Y**
+**1Y return**
 
 252 trading days.
 """
@@ -2114,7 +1899,7 @@ st.caption(
 
 
 # ============================================================
-# DOWNLOAD PRICE DATA
+# DOWNLOAD DATA
 # ============================================================
 
 with st.spinner(
@@ -2147,6 +1932,15 @@ performance_df = (
         price_data
     )
 )
+
+
+if performance_df.empty:
+
+    st.error(
+        "No performance data could be calculated."
+    )
+
+    st.stop()
 
 
 # ============================================================
@@ -2280,8 +2074,8 @@ st.header(
 
 
 st.caption(
-    "Use the filters to narrow the universe "
-    "and compare companies."
+    "Filter the universe and compare companies "
+    "using the controls below."
 )
 
 
@@ -2300,12 +2094,12 @@ filtered_table = apply_filters(
 
 st.write(
     f"**{len(filtered_table)} "
-    "companies selected**"
+    "securities selected**"
 )
 
 
 # ============================================================
-# DEFAULT SORT
+# SORT TABLE
 # ============================================================
 
 sort_options = [
@@ -2336,20 +2130,19 @@ sort_options = [
 ]
 
 
+available_sort_options = [
+
+    col
+    for col in sort_options
+    if col in filtered_table.columns
+]
+
+
 sort_col = st.selectbox(
 
     "Sort table by",
 
-    [
-
-        col
-
-        for col in sort_options
-
-        if col in filtered_table.columns
-    ],
-
-    index=0
+    available_sort_options
 )
 
 
@@ -2370,7 +2163,7 @@ filtered_table = (
 
 
 # ============================================================
-# FORMAT AFTER FILTERING
+# FORMAT DISPLAY
 # ============================================================
 
 display_table = format_main_table(
@@ -2404,7 +2197,7 @@ st.header(
 
 rv_timeframe = st.radio(
 
-    "Timeframe",
+    "Select timeframe",
 
     [
         "Daily",
@@ -2424,359 +2217,366 @@ return_col = (
     f"{rv_timeframe} Return"
 )
 
-
 vol_col = (
     f"{rv_timeframe} Volatility"
 )
 
 
 # ============================================================
-# CREATE RV DATAFRAME
+# VALIDATE COLUMNS
 # ============================================================
 
-rv_df = performance_df[
-
-    [
-        "Ticker",
-        "Category",
-        return_col,
-        vol_col
-    ]
-
-].copy()
-
-
-# Add market cap
 if (
 
-    fundamental_df is not None
+    return_col not in performance_df.columns
 
-    and not fundamental_df.empty
+    or
+
+    vol_col not in performance_df.columns
 
 ):
 
-    market_cap_data = (
-        fundamental_df[
-            [
-                "Ticker",
-                "Market Cap"
-            ]
-        ].copy()
-    )
-
-
-    rv_df = rv_df.merge(
-
-        market_cap_data,
-
-        on="Ticker",
-
-        how="left"
+    st.error(
+        f"Missing required columns: "
+        f"{return_col} / {vol_col}"
     )
 
 else:
 
-    rv_df[
-        "Market Cap"
-    ] = np.nan
+    rv_df = performance_df[
 
+        [
+            "Ticker",
+            "Category",
+            return_col,
+            vol_col
+        ]
 
-# ============================================================
-# FORCE NUMERIC
-# ============================================================
-
-rv_df[
-    return_col
-] = pd.to_numeric(
-
-    rv_df[
-        return_col
-    ],
-
-    errors="coerce"
-)
-
-
-rv_df[
-    vol_col
-] = pd.to_numeric(
-
-    rv_df[
-        vol_col
-    ],
-
-    errors="coerce"
-)
-
-
-rv_df[
-    "Market Cap"
-] = pd.to_numeric(
-
-    rv_df[
-        "Market Cap"
-    ],
-
-    errors="coerce"
-)
-
-
-# ============================================================
-# REMOVE INVALID VALUES
-# ============================================================
-
-rv_df = rv_df.dropna(
-
-    subset=[
-        return_col,
-        vol_col
-    ]
-
-).copy()
-
-
-# ============================================================
-# RETURN / VOLATILITY
-# ============================================================
-
-rv_df[
-    "Return / Volatility"
-] = np.where(
-
-    rv_df[
-        vol_col
-    ] != 0,
-
-    rv_df[
-        return_col
-    ]
-    /
-    rv_df[
-        vol_col
-    ],
-
-    np.nan
-)
-
-
-# ============================================================
-# SCATTER PLOT
-# ============================================================
-
-if rv_df.empty:
-
-    st.warning(
-        "There is not enough data "
-        "to create the chart."
-    )
-
-else:
-
-    fig = px.scatter(
-
-        rv_df,
-
-        x=vol_col,
-
-        y=return_col,
-
-        color="Category",
-
-        text="Ticker",
-
-        hover_data={
-
-            "Ticker": True,
-
-            "Category": True,
-
-            return_col:
-                ":.2%",
-
-            vol_col:
-                ":.2%",
-
-            "Market Cap":
-                ":,.0f",
-
-            "Return / Volatility":
-                ":.2f",
-        },
-
-        title=(
-
-            f"{rv_timeframe} Return "
-            "vs Realised Volatility"
-        )
-    )
+    ].copy()
 
 
     # --------------------------------------------------------
-    # POINT STYLE
+    # MARKET CAP
     # --------------------------------------------------------
 
-    fig.update_traces(
+    if (
 
-        textposition="top center",
+        fundamental_df is not None
 
-        textfont=dict(
-            size=9
-        ),
+        and not fundamental_df.empty
 
-        marker=dict(
+        and "Market Cap"
+        in fundamental_df.columns
 
-            size=9,
-
-            opacity=0.80
-        )
-    )
-
-
-    # --------------------------------------------------------
-    # ZERO RETURN LINE
-    # --------------------------------------------------------
-
-    fig.add_hline(
-
-        y=0,
-
-        line_dash="dash",
-
-        line_color="#888888",
-
-        opacity=0.7
-    )
-
-
-    # --------------------------------------------------------
-    # MEDIAN VOLATILITY
-    # --------------------------------------------------------
-
-    median_vol = rv_df[
-        vol_col
-    ].median()
-
-
-    if pd.notna(
-        median_vol
     ):
 
-        fig.add_vline(
-
-            x=median_vol,
-
-            line_dash="dash",
-
-            line_color="#888888",
-
-            opacity=0.7
+        market_cap_data = (
+            fundamental_df[
+                [
+                    "Ticker",
+                    "Market Cap"
+                ]
+            ].copy()
         )
 
 
+        rv_df = rv_df.merge(
+
+            market_cap_data,
+
+            on="Ticker",
+
+            how="left"
+        )
+
+    else:
+
+        rv_df["Market Cap"] = np.nan
+
+
     # --------------------------------------------------------
-    # MEDIAN RETURN
+    # FORCE NUMERIC
     # --------------------------------------------------------
 
-    median_return = rv_df[
-        return_col
-    ].median()
+    rv_df[return_col] = pd.to_numeric(
+
+        rv_df[return_col],
+
+        errors="coerce"
+    )
 
 
-    if pd.notna(
-        median_return
-    ):
+    rv_df[vol_col] = pd.to_numeric(
+
+        rv_df[vol_col],
+
+        errors="coerce"
+    )
+
+
+    rv_df["Market Cap"] = pd.to_numeric(
+
+        rv_df["Market Cap"],
+
+        errors="coerce"
+    )
+
+
+    # --------------------------------------------------------
+    # REMOVE INVALID OBSERVATIONS
+    # --------------------------------------------------------
+
+    rv_df = rv_df.dropna(
+
+        subset=[
+            return_col,
+            vol_col
+        ]
+
+    ).copy()
+
+
+    # --------------------------------------------------------
+    # RETURN / VOLATILITY
+    # --------------------------------------------------------
+
+    rv_df["Return / Volatility"] = np.where(
+
+        rv_df[vol_col] > 0,
+
+        rv_df[return_col]
+        /
+        rv_df[vol_col],
+
+        np.nan
+    )
+
+
+    rv_df = rv_df.dropna(
+
+        subset=[
+            "Return / Volatility"
+        ]
+
+    ).copy()
+
+
+    # ========================================================
+    # DATA COUNT
+    # ========================================================
+
+    st.caption(
+
+        f"{len(rv_df)} securities with valid "
+        f"{rv_timeframe.lower()} return and "
+        f"realised volatility data."
+    )
+
+
+    # ========================================================
+    # CHART
+    # ========================================================
+
+    if len(rv_df) < 2:
+
+        st.warning(
+            "Not enough valid observations "
+            "to create the chart."
+        )
+
+    else:
+
+        fig = px.scatter(
+
+            rv_df,
+
+            x=vol_col,
+
+            y=return_col,
+
+            color="Category",
+
+            text="Ticker",
+
+            hover_data={
+
+                "Ticker": True,
+
+                "Category": True,
+
+                return_col: ":.2%",
+
+                vol_col: ":.2%",
+
+                "Market Cap": ":,.0f",
+
+                "Return / Volatility":
+                    ":.2f"
+            },
+
+            title=(
+                f"{rv_timeframe} Return "
+                "vs Realised Volatility"
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # POINTS
+        # ----------------------------------------------------
+
+        fig.update_traces(
+
+            textposition="top center",
+
+            textfont=dict(
+                size=9
+            ),
+
+            marker=dict(
+                size=9,
+                opacity=0.80
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # ZERO RETURN LINE
+        # ----------------------------------------------------
 
         fig.add_hline(
 
-            y=median_return,
+            y=0,
 
-            line_dash="dot",
+            line_dash="dash",
 
-            line_color="#555555",
+            line_color="white",
 
             opacity=0.5
         )
 
 
-    # --------------------------------------------------------
-    # LAYOUT
-    # --------------------------------------------------------
+        # ----------------------------------------------------
+        # MEDIAN VOLATILITY
+        # ----------------------------------------------------
 
-    fig.update_layout(
+        median_vol = rv_df[
+            vol_col
+        ].median()
 
-        height=700,
 
-        xaxis_title=(
-            "Realised Volatility"
-        ),
+        if pd.notna(
+            median_vol
+        ):
 
-        yaxis_title=(
-            f"{rv_timeframe} Return"
-        ),
+            fig.add_vline(
 
-        legend_title=(
-            "Category"
-        ),
+                x=median_vol,
 
-        hovermode="closest",
+                line_dash="dash",
 
-        margin=dict(
+                line_color="#AAAAAA",
 
-            l=60,
+                opacity=0.5
+            )
 
-            r=30,
 
-            t=70,
+        # ----------------------------------------------------
+        # MEDIAN RETURN
+        # ----------------------------------------------------
 
-            b=60
+        median_return = rv_df[
+            return_col
+        ].median()
+
+
+        if pd.notna(
+            median_return
+        ):
+
+            fig.add_hline(
+
+                y=median_return,
+
+                line_dash="dot",
+
+                line_color="#AAAAAA",
+
+                opacity=0.5
+            )
+
+
+        # ----------------------------------------------------
+        # LAYOUT
+        # ----------------------------------------------------
+
+        fig.update_layout(
+
+            height=700,
+
+            xaxis_title=(
+                "Realised Volatility"
+            ),
+
+            yaxis_title=(
+                f"{rv_timeframe} Return"
+            ),
+
+            hovermode="closest",
+
+            margin=dict(
+                l=60,
+                r=30,
+                t=70,
+                b=60
+            )
         )
-    )
 
 
-    # --------------------------------------------------------
-    # AXIS FORMAT
-    # --------------------------------------------------------
+        # ----------------------------------------------------
+        # PERCENT AXES
+        # ----------------------------------------------------
 
-    fig.update_xaxes(
+        fig.update_xaxes(
+            tickformat=".0%"
+        )
 
-        tickformat=".0%",
-
-        zeroline=True,
-
-        zerolinecolor="#555555"
-    )
-
-
-    fig.update_yaxes(
-
-        tickformat=".0%",
-
-        zeroline=True,
-
-        zerolinecolor="#555555"
-    )
+        fig.update_yaxes(
+            tickformat=".0%"
+        )
 
 
-    st.plotly_chart(
+        st.plotly_chart(
 
-        fig,
+            fig,
 
-        use_container_width=True
-    )
+            use_container_width=True
+        )
 
 
 # ============================================================
-# RETURN / VOLATILITY RANKING
+# SECTION 4
+# RETURN / REALISED VOLATILITY RANKING
 # ============================================================
 
-st.subheader(
+st.divider()
 
-    f"{rv_timeframe} "
-    "Return / Realised Volatility Ranking"
+st.header(
+    "4. Return / Realised Volatility Ranking"
 )
 
 
-if rv_df.empty:
+# ============================================================
+# CHECK RV DATA
+# ============================================================
+
+if (
+
+    "rv_df" not in locals()
+
+    or rv_df.empty
+
+):
 
     st.warning(
         "No ranking data available."
@@ -2784,23 +2584,7 @@ if rv_df.empty:
 
 else:
 
-    ranking_df = rv_df[
-
-        [
-            "Ticker",
-
-            "Category",
-
-            "Market Cap",
-
-            return_col,
-
-            vol_col,
-
-            "Return / Volatility"
-        ]
-
-    ].copy()
+    ranking_df = rv_df.copy()
 
 
     # --------------------------------------------------------
@@ -2846,67 +2630,82 @@ else:
 
 
     # --------------------------------------------------------
-    # FORMAT
+    # COLUMNS
     # --------------------------------------------------------
+
+    ranking_df = ranking_df[
+
+        [
+            "Rank",
+            "Ticker",
+            "Category",
+            "Market Cap",
+            return_col,
+            vol_col,
+            "Return / Volatility"
+        ]
+
+    ].copy()
+
+
+    # ========================================================
+    # DISPLAY COPY
+    # ========================================================
 
     ranking_display = (
         ranking_df.copy()
     )
 
 
+    # --------------------------------------------------------
+    # MARKET CAP
+    # --------------------------------------------------------
+
     ranking_display[
         "Market Cap"
-    ] = (
-
-        ranking_display[
-            "Market Cap"
-        ]
-
-        .apply(
-            format_market_cap
-        )
+    ] = ranking_display[
+        "Market Cap"
+    ].apply(
+        format_market_cap
     )
 
+
+    # --------------------------------------------------------
+    # RETURN
+    # --------------------------------------------------------
 
     ranking_display[
         return_col
-    ] = (
-
-        ranking_display[
-            return_col
-        ]
-
-        .apply(
-            format_percent
-        )
+    ] = ranking_display[
+        return_col
+    ].apply(
+        format_percent
     )
 
+
+    # --------------------------------------------------------
+    # VOLATILITY
+    # --------------------------------------------------------
 
     ranking_display[
         vol_col
-    ] = (
-
-        ranking_display[
-            vol_col
-        ]
-
-        .apply(
-            format_percent
-        )
+    ] = ranking_display[
+        vol_col
+    ].apply(
+        format_percent
     )
 
 
+    # --------------------------------------------------------
+    # RATIO
+    # --------------------------------------------------------
+
     ranking_display[
         "Return / Volatility"
-    ] = (
-
-        ranking_display[
-            "Return / Volatility"
-        ]
-
-        .apply(
-            format_ratio
-        )
+    ] = ranking_display[
+        "Return / Volatility"
+    ].apply(
+        format_ratio
     )
 
 
@@ -2932,9 +2731,9 @@ else:
     )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # DISPLAY
-    # --------------------------------------------------------
+    # ========================================================
 
     st.dataframe(
 
@@ -2944,7 +2743,52 @@ else:
 
         hide_index=True,
 
-        height=600
+        height=650,
+
+        column_config={
+
+            "Rank":
+                st.column_config.NumberColumn(
+                    "Rank",
+                    width="small"
+                ),
+
+            "Ticker":
+                st.column_config.TextColumn(
+                    "Ticker",
+                    width="small"
+                ),
+
+            "Category":
+                st.column_config.TextColumn(
+                    "Category",
+                    width="medium"
+                ),
+
+            "Market Cap (B)":
+                st.column_config.TextColumn(
+                    "Market Cap (B)",
+                    width="medium"
+                ),
+
+            "Return":
+                st.column_config.TextColumn(
+                    "Return",
+                    width="small"
+                ),
+
+            "Realised Volatility":
+                st.column_config.TextColumn(
+                    "Realised Volatility",
+                    width="medium"
+                ),
+
+            "Return / Volatility":
+                st.column_config.TextColumn(
+                    "Return / Volatility",
+                    width="medium"
+                )
+        }
     )
 
 
@@ -2987,7 +2831,6 @@ with st.expander(
     else:
 
         st.success(
-
             "Price data available "
             "for all tickers."
         )
@@ -3006,9 +2849,7 @@ with st.expander(
             fundamental_df[
                 "Market Cap"
             ]
-
             .isna()
-
             .sum()
         )
 
