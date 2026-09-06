@@ -68,6 +68,20 @@ st.markdown(
 
 
     /* ======================================================
+       PLOTLY
+       ====================================================== */
+
+    .js-plotly-plot {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .plot-container {
+        width: 100% !important;
+    }
+
+
+    /* ======================================================
        MOBILE
        ====================================================== */
 
@@ -101,7 +115,9 @@ st.markdown(
         }
 
 
-        /* Metric cards */
+        /* ==================================================
+           METRIC CARDS
+           ================================================== */
 
         div[data-testid="stMetric"] {
             padding: 7px !important;
@@ -120,7 +136,9 @@ st.markdown(
         }
 
 
-        /* Radio */
+        /* ==================================================
+           RADIO
+           ================================================== */
 
         div[role="radiogroup"] {
             gap: 0.2rem !important;
@@ -133,42 +151,55 @@ st.markdown(
         }
 
 
-        /* Select boxes */
+        /* ==================================================
+           SELECT BOXES
+           ================================================== */
 
         div[data-baseweb="select"] {
             font-size: 0.8rem !important;
         }
 
 
-        /* Dataframe */
+        /* ==================================================
+           DATAFRAME
+           ================================================== */
 
         div[data-testid="stDataFrame"] {
             overflow-x: auto !important;
         }
 
 
-        /* Plotly */
+        /* ==================================================
+           PLOTLY
+           ================================================== */
 
         .js-plotly-plot {
             width: 100% !important;
+            max-width: 100% !important;
         }
 
 
-        /* Buttons */
+        /* ==================================================
+           BUTTONS
+           ================================================== */
 
         button {
             min-height: 40px !important;
         }
 
 
-        /* Captions */
+        /* ==================================================
+           CAPTIONS
+           ================================================== */
 
         div[data-testid="stCaptionContainer"] {
             font-size: 0.72rem !important;
         }
 
 
-        /* Expanders */
+        /* ==================================================
+           EXPANDERS
+           ================================================== */
 
         details summary {
             font-size: 0.84rem !important;
@@ -221,6 +252,9 @@ st.markdown(
 
 # ============================================================
 # TICKER UNIVERSE
+#
+# State Street SPDR sector ETFs and bonds removed because
+# they are displayed on a separate page.
 # ============================================================
 
 tickers = [
@@ -401,28 +435,6 @@ tickers = [
     "TOST",
     "VSXY",
     "WMT",
-
-    # --------------------------------------------------------
-    # STATE STREET / SPDR SECTOR ETFs
-    # --------------------------------------------------------
-
-    "XLB",
-    "XLC",
-    "XLE",
-    "XLF",
-    "XLI",
-    "XLK",
-    "XLP",
-    "XLRE",
-    "XLU",
-    "XLV",
-    "XLY",
-
-    # --------------------------------------------------------
-    # BONDS
-    # --------------------------------------------------------
-
-    "TLT",
 ]
 
 
@@ -583,24 +595,6 @@ groups = {
         "TOST",
         "VSXY",
         "WMT",
-    ],
-
-    "Sector ETFs": [
-        "XLB",
-        "XLC",
-        "XLE",
-        "XLF",
-        "XLI",
-        "XLK",
-        "XLP",
-        "XLRE",
-        "XLU",
-        "XLV",
-        "XLY",
-    ],
-
-    "Bonds": [
-        "TLT",
     ],
 }
 
@@ -1635,7 +1629,12 @@ def render_heatmap(
 
         fig,
 
-        use_container_width=True
+        use_container_width=True,
+
+        config={
+            "responsive": True,
+            "displayModeBar": False,
+        },
     )
 
 
@@ -2840,6 +2839,7 @@ st.caption(
 
 # ============================================================
 # SCATTER PLOT
+# MOBILE-OPTIMISED
 # ============================================================
 
 if len(rv_df) < 2:
@@ -2859,9 +2859,39 @@ else:
     )
 
 
-    # --------------------------------------------------------
-    # PLOTLY
-    # --------------------------------------------------------
+    # ========================================================
+    # PREPARE DISPLAY DATA
+    # ========================================================
+
+    rv_df["Market Cap Display"] = (
+        rv_df["Market Cap"]
+        .apply(format_market_cap)
+    )
+
+
+    rv_df["Return / Vol Display"] = (
+        rv_df["Return / Volatility"]
+        .apply(
+            lambda x:
+                f"{x:.2f}"
+                if pd.notna(x)
+                else "N/A"
+        )
+    )
+
+
+    # ========================================================
+    # PLOTLY SCATTER
+    #
+    # IMPORTANT MOBILE CHANGE:
+    #
+    # Do NOT display ticker names permanently on the chart.
+    # With ~100+ securities, permanent labels become
+    # unreadable on an iPhone.
+    #
+    # Instead, use larger touch-friendly points and show
+    # the ticker in the hover tooltip.
+    # ========================================================
 
     fig = px.scatter(
 
@@ -2873,11 +2903,11 @@ else:
 
         color="Category",
 
-        text="Ticker",
+        hover_name="Ticker",
 
         hover_data={
 
-            "Ticker": True,
+            "Ticker": False,
 
             "Category": True,
 
@@ -2885,40 +2915,88 @@ else:
 
             vol_col: ":.2%",
 
-            "Market Cap": ":,.0f",
+            "Market Cap Display": True,
 
-            "Return / Volatility": ":.2f",
+            "Return / Vol Display": True,
+
+        },
+
+        labels={
+
+            vol_col:
+                "Matched realised volatility",
+
+            return_col:
+                f"{rv_timeframe} return",
+
+            "Category":
+                "Category",
+
+            "Market Cap Display":
+                "Market cap",
+
+            "Return / Vol Display":
+                "Return / volatility",
 
         },
 
         title=(
-
             f"{rv_timeframe} Return "
             "vs Matched Realised Volatility"
-        )
+        ),
+
     )
 
+
+    # ========================================================
+    # MOBILE-FRIENDLY POINTS
+    # ========================================================
 
     fig.update_traces(
 
-        textposition="top center",
-
-        textfont=dict(
-            size=9
-        ),
+        mode="markers",
 
         marker=dict(
 
-            size=9,
+            size=12,
 
-            opacity=0.82
-        )
+            opacity=0.82,
+
+            line=dict(
+
+                width=0.8,
+
+                color="rgba(255,255,255,0.55)"
+            ),
+        ),
+
+        hovertemplate=(
+
+            "<b>%{hovertext}</b>"
+
+            "<br>Category: %{customdata[0]}"
+
+            f"<br>{rv_timeframe} Return: "
+            "%{y:+.2%}"
+
+            "<br>Realised Volatility: "
+            "%{x:.2%}"
+
+            "<br>Market Cap: "
+            "%{customdata[1]}"
+
+            "<br>Return / Volatility: "
+            "%{customdata[2]}"
+
+            "<extra></extra>"
+        ),
+
     )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # ZERO RETURN
-    # --------------------------------------------------------
+    # ========================================================
 
     fig.add_hline(
 
@@ -2928,13 +3006,15 @@ else:
 
         line_color="white",
 
-        opacity=0.45
+        opacity=0.45,
+
+        line_width=1,
     )
 
 
-    # --------------------------------------------------------
-    # MEDIAN VOL
-    # --------------------------------------------------------
+    # ========================================================
+    # MEDIAN VOLATILITY
+    # ========================================================
 
     median_vol = rv_df[
         vol_col
@@ -2953,13 +3033,15 @@ else:
 
             line_color="#AAAAAA",
 
-            opacity=0.5
+            opacity=0.5,
+
+            line_width=1,
         )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # MEDIAN RETURN
-    # --------------------------------------------------------
+    # ========================================================
 
     median_return = rv_df[
         return_col
@@ -2978,21 +3060,42 @@ else:
 
             line_color="#AAAAAA",
 
-            opacity=0.5
+            opacity=0.5,
+
+            line_width=1,
         )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # AXES
-    # --------------------------------------------------------
+    #
+    # More generous margins make the axis titles readable
+    # on narrow iPhone screens.
+    # ========================================================
 
     fig.update_xaxes(
 
         tickformat=".0%",
 
-        title=(
+        title_text=(
             "Matched realised volatility"
-        )
+        ),
+
+        title_font=dict(
+            size=12
+        ),
+
+        tickfont=dict(
+            size=10
+        ),
+
+        showgrid=True,
+
+        gridcolor="rgba(255,255,255,0.10)",
+
+        zeroline=False,
+
+        automargin=True,
     )
 
 
@@ -3000,40 +3103,129 @@ else:
 
         tickformat=".0%",
 
-        title=(
+        title_text=(
             f"{rv_timeframe} return"
-        )
+        ),
+
+        title_font=dict(
+            size=12
+        ),
+
+        tickfont=dict(
+            size=10
+        ),
+
+        showgrid=True,
+
+        gridcolor="rgba(255,255,255,0.10)",
+
+        zeroline=False,
+
+        automargin=True,
     )
 
 
-    # --------------------------------------------------------
-    # MOBILE-FRIENDLY HEIGHT
-    # --------------------------------------------------------
+    # ========================================================
+    # MOBILE-FRIENDLY LAYOUT
+    # ========================================================
 
     fig.update_layout(
 
-        height=550,
+        # Shorter than the previous 550px so it fits
+        # more naturally on an iPhone screen.
+        height=470,
+
+        autosize=True,
 
         hovermode="closest",
 
+        dragmode="pan",
+
         margin=dict(
 
-            l=45,
+            l=55,
 
-            r=20,
+            r=15,
 
-            t=65,
+            t=55,
 
-            b=45
-        )
+            b=105,
+        ),
+
+        # Horizontal legend below the chart.
+        # This prevents the vertical legend from consuming
+        # valuable width on mobile.
+        legend=dict(
+
+            orientation="h",
+
+            yanchor="top",
+
+            y=-0.22,
+
+            xanchor="center",
+
+            x=0.5,
+
+            font=dict(
+                size=9
+            ),
+
+            bgcolor="rgba(0,0,0,0)",
+        ),
+
+        title=dict(
+
+            x=0.5,
+
+            xanchor="center",
+
+            font=dict(
+                size=15
+            ),
+        ),
+
+        paper_bgcolor="rgba(0,0,0,0)",
+
+        plot_bgcolor="rgba(0,0,0,0)",
+
     )
 
+
+    # ========================================================
+    # RESPONSIVE CONFIG
+    #
+    # Removes the Plotly modebar on mobile and allows
+    # touch interaction without extra UI taking space.
+    # ========================================================
 
     st.plotly_chart(
 
         fig,
 
-        use_container_width=True
+        use_container_width=True,
+
+        config={
+
+            "responsive": True,
+
+            "displayModeBar": False,
+
+            "scrollZoom": False,
+
+            "doubleClick": "reset",
+
+            "showTips": True,
+
+        },
+
+    )
+
+
+    st.caption(
+        "Tip: tap a point to view the ticker, "
+        "return, volatility, market cap and "
+        "return/volatility."
     )
 
 
@@ -3616,7 +3808,7 @@ with st.expander(
     st.caption(
 
         "Yahoo Finance may not provide EPS "
-        "or revenue estimates for ETFs, bonds, "
+        "or revenue estimates for ETFs, "
         "commodities, international securities, "
         "or some smaller companies."
     )
