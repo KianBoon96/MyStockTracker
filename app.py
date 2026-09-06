@@ -73,11 +73,6 @@ st.markdown(
 
     .js-plotly-plot {
         width: 100% !important;
-        max-width: 100% !important;
-    }
-
-    .plot-container {
-        width: 100% !important;
     }
 
 
@@ -89,8 +84,8 @@ st.markdown(
 
         .block-container {
             padding-top: 0.6rem !important;
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
+            padding-left: 0.45rem !important;
+            padding-right: 0.45rem !important;
         }
 
 
@@ -115,9 +110,7 @@ st.markdown(
         }
 
 
-        /* ==================================================
-           METRIC CARDS
-           ================================================== */
+        /* Metric cards */
 
         div[data-testid="stMetric"] {
             padding: 7px !important;
@@ -136,9 +129,7 @@ st.markdown(
         }
 
 
-        /* ==================================================
-           RADIO
-           ================================================== */
+        /* Radio */
 
         div[role="radiogroup"] {
             gap: 0.2rem !important;
@@ -151,55 +142,35 @@ st.markdown(
         }
 
 
-        /* ==================================================
-           SELECT BOXES
-           ================================================== */
+        /* Select boxes */
 
         div[data-baseweb="select"] {
             font-size: 0.8rem !important;
         }
 
 
-        /* ==================================================
-           DATAFRAME
-           ================================================== */
+        /* Dataframe */
 
         div[data-testid="stDataFrame"] {
             overflow-x: auto !important;
         }
 
 
-        /* ==================================================
-           PLOTLY
-           ================================================== */
-
-        .js-plotly-plot {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-
-        /* ==================================================
-           BUTTONS
-           ================================================== */
+        /* Buttons */
 
         button {
             min-height: 40px !important;
         }
 
 
-        /* ==================================================
-           CAPTIONS
-           ================================================== */
+        /* Captions */
 
         div[data-testid="stCaptionContainer"] {
             font-size: 0.72rem !important;
         }
 
 
-        /* ==================================================
-           EXPANDERS
-           ================================================== */
+        /* Expanders */
 
         details summary {
             font-size: 0.84rem !important;
@@ -214,8 +185,8 @@ st.markdown(
     @media (max-width: 480px) {
 
         .block-container {
-            padding-left: 0.35rem !important;
-            padding-right: 0.35rem !important;
+            padding-left: 0.3rem !important;
+            padding-right: 0.3rem !important;
         }
 
 
@@ -253,8 +224,7 @@ st.markdown(
 # ============================================================
 # TICKER UNIVERSE
 #
-# State Street SPDR sector ETFs and bonds removed because
-# they are displayed on a separate page.
+# Sector ETFs and bonds intentionally removed.
 # ============================================================
 
 tickers = [
@@ -614,10 +584,8 @@ for category, symbols in groups.items():
 
 yf_aliases = {
 
-    # SK Hynix
     "SKHY": "000660.KS",
 
-    # Victoria's Secret
     "VSXY": "VSCO",
 }
 
@@ -700,6 +668,9 @@ def format_number(value):
 
 # ============================================================
 # DOWNLOAD PRICE DATA
+#
+# 4 years are downloaded so the dashboard can reliably
+# generate the most recent 3 years of weekly returns.
 # ============================================================
 
 @st.cache_data(
@@ -721,7 +692,7 @@ def download_price_data(ticker_list):
 
                 symbol,
 
-                period="2y",
+                period="4y",
 
                 interval="1d",
 
@@ -741,9 +712,9 @@ def download_price_data(ticker_list):
                 return ticker, None
 
 
-            # ----------------------------------------------
+            # ------------------------------------------------
             # MULTIINDEX
-            # ----------------------------------------------
+            # ------------------------------------------------
 
             if isinstance(
                 data.columns,
@@ -771,9 +742,9 @@ def download_price_data(ticker_list):
                     close = close.iloc[:, 0]
 
 
-            # ----------------------------------------------
+            # ------------------------------------------------
             # NORMAL COLUMNS
-            # ----------------------------------------------
+            # ------------------------------------------------
 
             else:
 
@@ -1632,9 +1603,13 @@ def render_heatmap(
         use_container_width=True,
 
         config={
+
             "responsive": True,
+
             "displayModeBar": False,
-        },
+
+            "displaylogo": False,
+        }
     )
 
 
@@ -1739,9 +1714,7 @@ def apply_filters(df):
     )
 
 
-    col1, col2 = st.columns(
-        2
-    )
+    col1, col2 = st.columns(2)
 
 
     # ========================================================
@@ -2219,6 +2192,15 @@ annualised realised volatility.
 
 This is **not a Sharpe ratio** because
 the risk-free rate is not subtracted.
+
+
+**Weekly Heatmap**
+
+Weekly returns use the last available
+trading price for each Friday-ending week.
+
+The heatmap displays the most recent
+three years of weekly returns.
 """
 )
 
@@ -2636,8 +2618,9 @@ st.header(
 
 st.caption(
 
-    "Return and realised volatility "
-    "use the same measurement horizon."
+    "The chart is divided into four quadrants "
+    "using the median return and median realised "
+    "volatility of the selected universe."
 )
 
 
@@ -2806,9 +2789,11 @@ if (
     rv_df = rv_df.replace(
 
         [
+
             np.inf,
 
             -np.inf,
+
         ],
 
         np.nan
@@ -2839,7 +2824,6 @@ st.caption(
 
 # ============================================================
 # SCATTER PLOT
-# MOBILE-OPTIMISED
 # ============================================================
 
 if len(rv_df) < 2:
@@ -2860,160 +2844,7 @@ else:
 
 
     # ========================================================
-    # PREPARE DISPLAY DATA
-    # ========================================================
-
-    rv_df["Market Cap Display"] = (
-        rv_df["Market Cap"]
-        .apply(format_market_cap)
-    )
-
-
-    rv_df["Return / Vol Display"] = (
-        rv_df["Return / Volatility"]
-        .apply(
-            lambda x:
-                f"{x:.2f}"
-                if pd.notna(x)
-                else "N/A"
-        )
-    )
-
-
-    # ========================================================
-    # PLOTLY SCATTER
-    #
-    # IMPORTANT MOBILE CHANGE:
-    #
-    # Do NOT display ticker names permanently on the chart.
-    # With ~100+ securities, permanent labels become
-    # unreadable on an iPhone.
-    #
-    # Instead, use larger touch-friendly points and show
-    # the ticker in the hover tooltip.
-    # ========================================================
-
-    fig = px.scatter(
-
-        rv_df,
-
-        x=vol_col,
-
-        y=return_col,
-
-        color="Category",
-
-        hover_name="Ticker",
-
-        hover_data={
-
-            "Ticker": False,
-
-            "Category": True,
-
-            return_col: ":.2%",
-
-            vol_col: ":.2%",
-
-            "Market Cap Display": True,
-
-            "Return / Vol Display": True,
-
-        },
-
-        labels={
-
-            vol_col:
-                "Matched realised volatility",
-
-            return_col:
-                f"{rv_timeframe} return",
-
-            "Category":
-                "Category",
-
-            "Market Cap Display":
-                "Market cap",
-
-            "Return / Vol Display":
-                "Return / volatility",
-
-        },
-
-        title=(
-            f"{rv_timeframe} Return "
-            "vs Matched Realised Volatility"
-        ),
-
-    )
-
-
-    # ========================================================
-    # MOBILE-FRIENDLY POINTS
-    # ========================================================
-
-    fig.update_traces(
-
-        mode="markers",
-
-        marker=dict(
-
-            size=12,
-
-            opacity=0.82,
-
-            line=dict(
-
-                width=0.8,
-
-                color="rgba(255,255,255,0.55)"
-            ),
-        ),
-
-        hovertemplate=(
-
-            "<b>%{hovertext}</b>"
-
-            "<br>Category: %{customdata[0]}"
-
-            f"<br>{rv_timeframe} Return: "
-            "%{y:+.2%}"
-
-            "<br>Realised Volatility: "
-            "%{x:.2%}"
-
-            "<br>Market Cap: "
-            "%{customdata[1]}"
-
-            "<br>Return / Volatility: "
-            "%{customdata[2]}"
-
-            "<extra></extra>"
-        ),
-
-    )
-
-
-    # ========================================================
-    # ZERO RETURN
-    # ========================================================
-
-    fig.add_hline(
-
-        y=0,
-
-        line_dash="dash",
-
-        line_color="white",
-
-        opacity=0.45,
-
-        line_width=1,
-    )
-
-
-    # ========================================================
-    # MEDIAN VOLATILITY
+    # QUADRANT BOUNDARIES
     # ========================================================
 
     median_vol = rv_df[
@@ -3021,107 +2852,788 @@ else:
     ].median()
 
 
-    if pd.notna(
-        median_vol
-    ):
-
-        fig.add_vline(
-
-            x=median_vol,
-
-            line_dash="dash",
-
-            line_color="#AAAAAA",
-
-            opacity=0.5,
-
-            line_width=1,
-        )
-
-
-    # ========================================================
-    # MEDIAN RETURN
-    # ========================================================
-
     median_return = rv_df[
         return_col
     ].median()
 
 
-    if pd.notna(
-        median_return
+    # ========================================================
+    # QUADRANT CLASSIFICATION
+    # ========================================================
+
+    def classify_quadrant(row):
+
+        high_return = (
+            row[return_col]
+            >=
+            median_return
+        )
+
+
+        low_volatility = (
+            row[vol_col]
+            <=
+            median_vol
+        )
+
+
+        if high_return and low_volatility:
+
+            return "High Return / Low Volatility"
+
+
+        elif high_return and not low_volatility:
+
+            return "High Return / High Volatility"
+
+
+        elif not high_return and low_volatility:
+
+            return "Low Return / Low Volatility"
+
+
+        else:
+
+            return "Low Return / High Volatility"
+
+
+    rv_df["Quadrant"] = rv_df.apply(
+
+        classify_quadrant,
+
+        axis=1
+    )
+
+
+    # ========================================================
+    # QUADRANT COLORS
+    # ========================================================
+
+    quadrant_colors = {
+
+        "High Return / Low Volatility":
+            "#00E676",
+
+        "High Return / High Volatility":
+            "#FFB300",
+
+        "Low Return / Low Volatility":
+            "#42A5F5",
+
+        "Low Return / High Volatility":
+            "#EF5350",
+    }
+
+
+    # ========================================================
+    # MOBILE DISPLAY MODE
+    # ========================================================
+
+    scatter_view = st.radio(
+
+        "Scatterplot view",
+
+        [
+
+            "Quadrants",
+
+            "By Category",
+
+        ],
+
+        horizontal=True,
+
+        key="scatter_view",
+    )
+
+
+    # ========================================================
+    # OPTIONAL TICKER HIGHLIGHT
+    # ========================================================
+
+    ticker_options = [
+        "None"
+    ] + sorted(
+        rv_df["Ticker"]
+        .dropna()
+        .unique()
+        .tolist()
+    )
+
+
+    highlight_ticker = st.selectbox(
+
+        "Highlight ticker",
+
+        ticker_options,
+
+        key="scatter_highlight",
+    )
+
+
+    # ========================================================
+    # BUILD FIGURE
+    # ========================================================
+
+    fig = go.Figure()
+
+
+    # ========================================================
+    # QUADRANT BACKGROUNDS
+    # ========================================================
+
+    x_min = rv_df[vol_col].min()
+
+    x_max = rv_df[vol_col].max()
+
+    y_min = rv_df[return_col].min()
+
+    y_max = rv_df[return_col].max()
+
+
+    # Add a little padding to the boundaries.
+
+    x_padding = (
+        (x_max - x_min) * 0.08
+        if x_max > x_min
+        else 0.02
+    )
+
+
+    y_padding = (
+        (y_max - y_min) * 0.08
+        if y_max > y_min
+        else 0.02
+    )
+
+
+    x_axis_min = x_min - x_padding
+
+    x_axis_max = x_max + x_padding
+
+    y_axis_min = y_min - y_padding
+
+    y_axis_max = y_max + y_padding
+
+
+    # --------------------------------------------------------
+    # TOP LEFT
+    # High Return / Low Volatility
+    # --------------------------------------------------------
+
+    fig.add_shape(
+
+        type="rect",
+
+        x0=x_axis_min,
+
+        x1=median_vol,
+
+        y0=median_return,
+
+        y1=y_axis_max,
+
+        fillcolor="#00E676",
+
+        opacity=0.08,
+
+        line_width=0,
+
+        layer="below",
+    )
+
+
+    # --------------------------------------------------------
+    # TOP RIGHT
+    # High Return / High Volatility
+    # --------------------------------------------------------
+
+    fig.add_shape(
+
+        type="rect",
+
+        x0=median_vol,
+
+        x1=x_axis_max,
+
+        y0=median_return,
+
+        y1=y_axis_max,
+
+        fillcolor="#FFB300",
+
+        opacity=0.08,
+
+        line_width=0,
+
+        layer="below",
+    )
+
+
+    # --------------------------------------------------------
+    # BOTTOM LEFT
+    # Low Return / Low Volatility
+    # --------------------------------------------------------
+
+    fig.add_shape(
+
+        type="rect",
+
+        x0=x_axis_min,
+
+        x1=median_vol,
+
+        y0=y_axis_min,
+
+        y1=median_return,
+
+        fillcolor="#42A5F5",
+
+        opacity=0.08,
+
+        line_width=0,
+
+        layer="below",
+    )
+
+
+    # --------------------------------------------------------
+    # BOTTOM RIGHT
+    # Low Return / High Volatility
+    # --------------------------------------------------------
+
+    fig.add_shape(
+
+        type="rect",
+
+        x0=median_vol,
+
+        x1=x_axis_max,
+
+        y0=y_axis_min,
+
+        y1=median_return,
+
+        fillcolor="#EF5350",
+
+        opacity=0.08,
+
+        line_width=0,
+
+        layer="below",
+    )
+
+
+    # ========================================================
+    # SCATTER TRACES
+    # ========================================================
+
+    if scatter_view == "Quadrants":
+
+        for quadrant in [
+
+            "High Return / Low Volatility",
+
+            "High Return / High Volatility",
+
+            "Low Return / Low Volatility",
+
+            "Low Return / High Volatility",
+
+        ]:
+
+            subset = rv_df[
+                rv_df["Quadrant"]
+                ==
+                quadrant
+            ]
+
+
+            if subset.empty:
+
+                continue
+
+
+            fig.add_trace(
+
+                go.Scatter(
+
+                    x=subset[vol_col],
+
+                    y=subset[return_col],
+
+                    mode="markers+text",
+
+                    name=quadrant,
+
+                    text=subset["Ticker"],
+
+                    textposition="top center",
+
+                    textfont=dict(
+                        size=9
+                    ),
+
+                    marker=dict(
+
+                        size=10,
+
+                        color=quadrant_colors[
+                            quadrant
+                        ],
+
+                        line=dict(
+
+                            width=1,
+
+                            color="#111111"
+                        ),
+
+                        opacity=0.88,
+                    ),
+
+                    customdata=np.column_stack(
+
+                        [
+
+                            subset["Ticker"],
+
+                            subset["Category"],
+
+                            subset["Market Cap"],
+
+                            subset["Return / Volatility"],
+
+                            subset["Quadrant"],
+
+                        ]
+
+                    ),
+
+                    hovertemplate=(
+
+                        "<b>%{customdata[0]}</b>"
+
+                        "<br>Category: "
+                        "%{customdata[1]}"
+
+                        "<br>Return: "
+                        "%{y:+.2%}"
+
+                        "<br>Volatility: "
+                        "%{x:.2%}"
+
+                        "<br>Return / Vol: "
+                        "%{customdata[3]:.2f}"
+
+                        "<br>Quadrant: "
+                        "%{customdata[4]}"
+
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+
+    else:
+
+        categories = sorted(
+
+            rv_df["Category"]
+            .dropna()
+            .unique()
+            .tolist()
+        )
+
+
+        category_colors = px.colors.qualitative.Dark24
+
+
+        for i, category in enumerate(
+            categories
+        ):
+
+            subset = rv_df[
+                rv_df["Category"]
+                ==
+                category
+            ]
+
+
+            fig.add_trace(
+
+                go.Scatter(
+
+                    x=subset[vol_col],
+
+                    y=subset[return_col],
+
+                    mode="markers+text",
+
+                    name=category,
+
+                    text=subset["Ticker"],
+
+                    textposition="top center",
+
+                    textfont=dict(
+                        size=8
+                    ),
+
+                    marker=dict(
+
+                        size=9,
+
+                        color=category_colors[
+                            i % len(category_colors)
+                        ],
+
+                        opacity=0.78,
+
+                        line=dict(
+
+                            width=0.7,
+
+                            color="#111111"
+                        )
+                    ),
+
+                    customdata=np.column_stack(
+
+                        [
+
+                            subset["Ticker"],
+
+                            subset["Category"],
+
+                            subset["Market Cap"],
+
+                            subset["Return / Volatility"],
+
+                            subset["Quadrant"],
+
+                        ]
+
+                    ),
+
+                    hovertemplate=(
+
+                        "<b>%{customdata[0]}</b>"
+
+                        "<br>Category: "
+                        "%{customdata[1]}"
+
+                        "<br>Return: "
+                        "%{y:+.2%}"
+
+                        "<br>Volatility: "
+                        "%{x:.2%}"
+
+                        "<br>Return / Vol: "
+                        "%{customdata[3]:.2f}"
+
+                        "<br>Quadrant: "
+                        "%{customdata[4]}"
+
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+
+    # ========================================================
+    # HIGHLIGHT SELECTED TICKER
+    # ========================================================
+
+    if (
+        highlight_ticker != "None"
+        and
+        highlight_ticker in rv_df["Ticker"].values
     ):
 
-        fig.add_hline(
+        selected = rv_df[
+            rv_df["Ticker"]
+            ==
+            highlight_ticker
+        ].iloc[0]
 
-            y=median_return,
 
-            line_dash="dot",
+        fig.add_trace(
 
-            line_color="#AAAAAA",
+            go.Scatter(
 
-            opacity=0.5,
+                x=[selected[vol_col]],
 
-            line_width=1,
+                y=[selected[return_col]],
+
+                mode="markers+text",
+
+                name=f"★ {highlight_ticker}",
+
+                text=[highlight_ticker],
+
+                textposition="top center",
+
+                textfont=dict(
+
+                    size=13,
+
+                    color="white"
+                ),
+
+                marker=dict(
+
+                    size=18,
+
+                    color="#FFFFFF",
+
+                    symbol="circle-open",
+
+                    line=dict(
+
+                        width=3,
+
+                        color="#FFFFFF"
+                    )
+                ),
+
+                hovertemplate=(
+
+                    f"<b>{highlight_ticker}</b>"
+
+                    "<br>Highlighted security"
+
+                    "<extra></extra>"
+                ),
+            )
         )
 
 
     # ========================================================
+    # MEDIAN LINES
+    # ========================================================
+
+    fig.add_hline(
+
+        y=median_return,
+
+        line_dash="dash",
+
+        line_color="#FFFFFF",
+
+        opacity=0.55,
+
+        line_width=1.5,
+    )
+
+
+    fig.add_vline(
+
+        x=median_vol,
+
+        line_dash="dash",
+
+        line_color="#FFFFFF",
+
+        opacity=0.55,
+
+        line_width=1.5,
+    )
+
+
+    # ========================================================
+    # QUADRANT LABELS
+    # ========================================================
+
+    fig.add_annotation(
+
+        x=(
+            x_axis_min
+            +
+            median_vol
+        ) / 2,
+
+        y=(
+            median_return
+            +
+            y_axis_max
+        ) / 2,
+
+        text="<b>HIGH RETURN<br>LOW VOL</b>",
+
+        showarrow=False,
+
+        font=dict(
+
+            size=11,
+
+            color="#00E676"
+        ),
+
+        align="center",
+
+        opacity=0.8,
+    )
+
+
+    fig.add_annotation(
+
+        x=(
+            median_vol
+            +
+            x_axis_max
+        ) / 2,
+
+        y=(
+            median_return
+            +
+            y_axis_max
+        ) / 2,
+
+        text="<b>HIGH RETURN<br>HIGH VOL</b>",
+
+        showarrow=False,
+
+        font=dict(
+
+            size=11,
+
+            color="#FFB300"
+        ),
+
+        align="center",
+
+        opacity=0.8,
+    )
+
+
+    fig.add_annotation(
+
+        x=(
+            x_axis_min
+            +
+            median_vol
+        ) / 2,
+
+        y=(
+            y_axis_min
+            +
+            median_return
+        ) / 2,
+
+        text="<b>LOW RETURN<br>LOW VOL</b>",
+
+        showarrow=False,
+
+        font=dict(
+
+            size=11,
+
+            color="#42A5F5"
+        ),
+
+        align="center",
+
+        opacity=0.8,
+    )
+
+
+    fig.add_annotation(
+
+        x=(
+            median_vol
+            +
+            x_axis_max
+        ) / 2,
+
+        y=(
+            y_axis_min
+            +
+            median_return
+        ) / 2,
+
+        text="<b>LOW RETURN<br>HIGH VOL</b>",
+
+        showarrow=False,
+
+        font=dict(
+
+            size=11,
+
+            color="#EF5350"
+        ),
+
+        align="center",
+
+        opacity=0.8,
+    )
+
+
+    # ========================================================
     # AXES
-    #
-    # More generous margins make the axis titles readable
-    # on narrow iPhone screens.
     # ========================================================
 
     fig.update_xaxes(
 
+        title="Realised Volatility",
+
         tickformat=".0%",
 
-        title_text=(
-            "Matched realised volatility"
-        ),
+        range=[
 
-        title_font=dict(
-            size=12
-        ),
+            x_axis_min,
 
-        tickfont=dict(
-            size=10
-        ),
+            x_axis_max,
+
+        ],
 
         showgrid=True,
 
-        gridcolor="rgba(255,255,255,0.10)",
+        gridcolor="rgba(255,255,255,0.08)",
 
         zeroline=False,
 
-        automargin=True,
+        fixedrange=True,
+
+        title_font=dict(
+            size=11
+        ),
+
+        tickfont=dict(
+            size=9
+        ),
     )
 
 
     fig.update_yaxes(
 
+        title=f"{rv_timeframe} Return",
+
         tickformat=".0%",
 
-        title_text=(
-            f"{rv_timeframe} return"
-        ),
+        range=[
 
-        title_font=dict(
-            size=12
-        ),
+            y_axis_min,
 
-        tickfont=dict(
-            size=10
-        ),
+            y_axis_max,
+
+        ],
 
         showgrid=True,
 
-        gridcolor="rgba(255,255,255,0.10)",
+        gridcolor="rgba(255,255,255,0.08)",
 
         zeroline=False,
 
-        automargin=True,
+        fixedrange=True,
+
+        title_font=dict(
+            size=11
+        ),
+
+        tickfont=dict(
+            size=9
+        ),
     )
 
 
@@ -3131,72 +3643,52 @@ else:
 
     fig.update_layout(
 
-        # Shorter than the previous 550px so it fits
-        # more naturally on an iPhone screen.
-        height=470,
+        height=620,
 
         autosize=True,
 
         hovermode="closest",
 
-        dragmode="pan",
-
-        margin=dict(
-
-            l=55,
-
-            r=15,
-
-            t=55,
-
-            b=105,
-        ),
-
-        # Horizontal legend below the chart.
-        # This prevents the vertical legend from consuming
-        # valuable width on mobile.
-        legend=dict(
-
-            orientation="h",
-
-            yanchor="top",
-
-            y=-0.22,
-
-            xanchor="center",
-
-            x=0.5,
-
-            font=dict(
-                size=9
-            ),
-
-            bgcolor="rgba(0,0,0,0)",
-        ),
-
-        title=dict(
-
-            x=0.5,
-
-            xanchor="center",
-
-            font=dict(
-                size=15
-            ),
-        ),
+        dragmode=False,
 
         paper_bgcolor="rgba(0,0,0,0)",
 
         plot_bgcolor="rgba(0,0,0,0)",
 
+        margin=dict(
+
+            l=48,
+
+            r=15,
+
+            t=30,
+
+            b=50
+        ),
+
+        legend=dict(
+
+            orientation="h",
+
+            yanchor="bottom",
+
+            y=1.01,
+
+            xanchor="left",
+
+            x=0,
+
+            font=dict(
+                size=8
+            ),
+
+            bgcolor="rgba(0,0,0,0)",
+        ),
     )
 
 
     # ========================================================
-    # RESPONSIVE CONFIG
-    #
-    # Removes the Plotly modebar on mobile and allows
-    # touch interaction without extra UI taking space.
+    # MOBILE CONFIG
     # ========================================================
 
     st.plotly_chart(
@@ -3207,622 +3699,4 @@ else:
 
         config={
 
-            "responsive": True,
-
-            "displayModeBar": False,
-
-            "scrollZoom": False,
-
-            "doubleClick": "reset",
-
-            "showTips": True,
-
-        },
-
-    )
-
-
-    st.caption(
-        "Tip: tap a point to view the ticker, "
-        "return, volatility, market cap and "
-        "return/volatility."
-    )
-
-
-# ============================================================
-# PART 4
-# RETURN / REALISED VOLATILITY RANKING
-#
-# ONLY:
-# Monthly
-# Semi-Annual
-# Annual
-# ============================================================
-
-st.divider()
-
-st.header(
-    "4. Return / Realised Volatility Ranking"
-)
-
-
-st.caption(
-
-    "Period return divided by matched "
-    "annualised realised volatility."
-)
-
-
-ranking_timeframe = st.radio(
-
-    "Select ranking timeframe",
-
-    [
-
-        "Monthly",
-
-        "Semi-Annual",
-
-        "Annual",
-
-    ],
-
-    horizontal=True,
-
-    key="ranking_timeframe",
-)
-
-
-ranking_return_col = (
-    f"{ranking_timeframe} Return"
-)
-
-
-ranking_vol_col = (
-    f"{ranking_timeframe} Volatility"
-)
-
-
-# ============================================================
-# BUILD RANKING DATA
-# ============================================================
-
-ranking_df = pd.DataFrame()
-
-
-if (
-
-    ranking_return_col
-    in performance_df.columns
-
-    and
-
-    ranking_vol_col
-    in performance_df.columns
-
-):
-
-    ranking_df = performance_df[
-
-        [
-
-            "Ticker",
-
-            "Category",
-
-            ranking_return_col,
-
-            ranking_vol_col,
-
-        ]
-
-    ].copy()
-
-
-    # ========================================================
-    # MARKET CAP
-    # ========================================================
-
-    if (
-
-        fundamental_df is not None
-
-        and not fundamental_df.empty
-
-        and "Market Cap" in fundamental_df.columns
-
-    ):
-
-        ranking_df = ranking_df.merge(
-
-            fundamental_df[
-
-                [
-
-                    "Ticker",
-
-                    "Market Cap",
-
-                ]
-
-            ],
-
-            on="Ticker",
-
-            how="left"
-        )
-
-    else:
-
-        ranking_df[
-            "Market Cap"
-        ] = np.nan
-
-
-    # ========================================================
-    # FORCE NUMERIC
-    # ========================================================
-
-    ranking_df[
-        ranking_return_col
-    ] = pd.to_numeric(
-
-        ranking_df[
-            ranking_return_col
-        ],
-
-        errors="coerce"
-    )
-
-
-    ranking_df[
-        ranking_vol_col
-    ] = pd.to_numeric(
-
-        ranking_df[
-            ranking_vol_col
-        ],
-
-        errors="coerce"
-    )
-
-
-    ranking_df[
-        "Market Cap"
-    ] = pd.to_numeric(
-
-        ranking_df[
-            "Market Cap"
-        ],
-
-        errors="coerce"
-    )
-
-
-    # ========================================================
-    # REMOVE INVALID
-    # ========================================================
-
-    ranking_df = ranking_df.dropna(
-
-        subset=[
-
-            ranking_return_col,
-
-            ranking_vol_col,
-
-        ]
-    ).copy()
-
-
-    # ========================================================
-    # RETURN / VOL
-    # ========================================================
-
-    ranking_df[
-        "Return / Volatility"
-    ] = np.where(
-
-        ranking_df[
-            ranking_vol_col
-        ] > 0,
-
-        ranking_df[
-            ranking_return_col
-        ]
-        /
-        ranking_df[
-            ranking_vol_col
-        ],
-
-        np.nan
-    )
-
-
-    ranking_df = ranking_df.replace(
-
-        [
-
-            np.inf,
-
-            -np.inf,
-
-        ],
-
-        np.nan
-    )
-
-
-    ranking_df = ranking_df.dropna(
-
-        subset=[
-
-            "Return / Volatility"
-
-        ]
-    )
-
-
-# ============================================================
-# RANKING
-# ============================================================
-
-if ranking_df.empty:
-
-    st.warning(
-
-        "No ranking data available for "
-        f"{ranking_timeframe.lower()}."
-    )
-
-else:
-
-    ranking_df = (
-
-        ranking_df
-
-        .sort_values(
-
-            "Return / Volatility",
-
-            ascending=False,
-
-            na_position="last"
-        )
-
-        .reset_index(
-            drop=True
-        )
-    )
-
-
-    # ========================================================
-    # RANK
-    # ========================================================
-
-    ranking_df.insert(
-
-        0,
-
-        "Rank",
-
-        np.arange(
-
-            1,
-
-            len(ranking_df) + 1
-        )
-    )
-
-
-    # ========================================================
-    # SUMMARY
-    # ========================================================
-
-    top_row = ranking_df.iloc[0]
-
-
-    c1, c2, c3 = st.columns(3)
-
-
-    with c1:
-
-        st.metric(
-
-            "Rank #1",
-
-            top_row["Ticker"]
-        )
-
-
-    with c2:
-
-        st.metric(
-
-            "Return / Vol",
-
-            f"{top_row['Return / Volatility']:.2f}"
-        )
-
-
-    with c3:
-
-        st.metric(
-
-            "Securities Ranked",
-
-            len(ranking_df)
-        )
-
-
-    # ========================================================
-    # DISPLAY
-    # ========================================================
-
-    ranking_display = ranking_df.copy()
-
-
-    # --------------------------------------------------------
-    # MARKET CAP
-    # --------------------------------------------------------
-
-    ranking_display[
-        "Market Cap"
-    ] = ranking_display[
-        "Market Cap"
-    ].apply(
-        format_market_cap
-    )
-
-
-    # --------------------------------------------------------
-    # RETURN
-    # --------------------------------------------------------
-
-    ranking_display[
-        ranking_return_col
-    ] = ranking_display[
-        ranking_return_col
-    ].apply(
-        format_percent
-    )
-
-
-    # --------------------------------------------------------
-    # VOL
-    # --------------------------------------------------------
-
-    ranking_display[
-        ranking_vol_col
-    ] = ranking_display[
-        ranking_vol_col
-    ].apply(
-        format_percent
-    )
-
-
-    # --------------------------------------------------------
-    # RETURN / VOL
-    # --------------------------------------------------------
-
-    ranking_display[
-        "Return / Volatility"
-    ] = ranking_display[
-        "Return / Volatility"
-    ].apply(
-
-        lambda x:
-
-            f"{x:.2f}"
-
-            if pd.notna(x)
-
-            else "N/A"
-    )
-
-
-    # --------------------------------------------------------
-    # RENAME
-    # --------------------------------------------------------
-
-    ranking_display = ranking_display.rename(
-
-        columns={
-
-            "Market Cap":
-                "Market Cap (B)",
-
-            ranking_return_col:
-                "Return",
-
-            ranking_vol_col:
-                "Realised Volatility",
-
-        }
-    )
-
-
-    # ========================================================
-    # MOBILE VIEW
-    # ========================================================
-
-    ranking_view = st.radio(
-
-        "Ranking table view",
-
-        [
-
-            "Essential",
-
-            "Full",
-
-        ],
-
-        horizontal=True,
-
-        key="ranking_view",
-    )
-
-
-    if ranking_view == "Essential":
-
-        ranking_columns = [
-
-            "Rank",
-
-            "Ticker",
-
-            "Return",
-
-            "Realised Volatility",
-
-            "Return / Volatility",
-
-        ]
-
-    else:
-
-        ranking_columns = [
-
-            "Rank",
-
-            "Ticker",
-
-            "Category",
-
-            "Market Cap (B)",
-
-            "Return",
-
-            "Realised Volatility",
-
-            "Return / Volatility",
-
-        ]
-
-
-    ranking_columns = [
-
-        c
-
-        for c in ranking_columns
-
-        if c in ranking_display.columns
-    ]
-
-
-    ranking_display = ranking_display[
-        ranking_columns
-    ]
-
-
-    # ========================================================
-    # RANKING TABLE
-    # ========================================================
-
-    st.dataframe(
-
-        ranking_display,
-
-        use_container_width=True,
-
-        hide_index=True,
-
-        height=600,
-
-    )
-
-
-# ============================================================
-# DATA QUALITY
-# ============================================================
-
-st.divider()
-
-
-with st.expander(
-    "Data quality / unavailable tickers"
-):
-
-    unavailable = [
-
-        ticker
-
-        for ticker in tickers
-
-        if ticker not in price_data
-    ]
-
-
-    if unavailable:
-
-        st.warning(
-
-            f"{len(unavailable)} ticker(s) "
-            "did not return price data:"
-        )
-
-
-        st.write(
-
-            ", ".join(
-                unavailable
-            )
-        )
-
-    else:
-
-        st.success(
-
-            "Price data available for all tickers."
-        )
-
-
-    if (
-
-        fundamental_df is not None
-
-        and not fundamental_df.empty
-
-        and "Market Cap" in fundamental_df.columns
-
-    ):
-
-        missing_market_cap = (
-
-            fundamental_df[
-                "Market Cap"
-            ]
-            .isna()
-            .sum()
-        )
-
-
-        st.info(
-
-            f"{missing_market_cap} ticker(s) "
-            "do not have market-cap data."
-        )
-
-
-    st.caption(
-
-        "Yahoo Finance may not provide EPS "
-        "or revenue estimates for ETFs, "
-        "commodities, international securities, "
-        "or some smaller companies."
-    )
-
-
-# ============================================================
-# FOOTER
-# ============================================================
-
-st.divider()
-
-st.caption(
-
-    "Data source: Yahoo Finance • "
-    "Returns calculated from adjusted daily prices • "
-    "Realised volatility annualised using √252"
-)
+            "responsive
