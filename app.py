@@ -1,8 +1,16 @@
+# ============================================================
+# EQUITY FACTOR DASHBOARD
+# Streamlit + yfinance
+# ============================================================
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+import numpy as np
+import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
 
 
 # ============================================================
@@ -10,656 +18,1374 @@ from plotly.subplots import make_subplots
 # ============================================================
 
 st.set_page_config(
-    page_title="My Stock Tracker",
-    page_icon="📈",
-    layout="wide"
+    page_title="Equity Factor Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 
 # ============================================================
-# DEFAULT STOCKS
+# CUSTOM CSS
 # ============================================================
 
-DEFAULT_STOCKS = {
-    "MRVL": {
-        "forward_eps": 5.46,
-        "tp": 250
-    },
-    "CIEN": {
-        "forward_eps": 8.67,
-        "tp": 400
-    },
-    "VRT": {
-        "forward_eps": 7.81,
-        "tp": 300
-    },
-    "APP": {
-        "forward_eps": 18.26,
-        "tp": 400
+st.markdown("""
+<style>
+
+    .main {
+        background-color: #0e1117;
     }
+
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 3rem;
+    }
+
+    h1, h2, h3 {
+        color: #f5f5f5;
+    }
+
+    .metric-card {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    div[data-testid="stMetric"] {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# TICKER UNIVERSE
+# ============================================================
+
+tickers = [
+
+    # --------------------------------------------------------
+    # SEMICONDUCTORS
+    # --------------------------------------------------------
+    "ALAB", "AMBA", "AMD", "AVGO", "CRDO",
+    "DRAM", "FORM", "INTC", "MRVL", "MU",
+    "NVDA", "SKHY", "STM", "TSM",
+
+    # --------------------------------------------------------
+    # SEMICONDUCTOR EQUIPMENT
+    # --------------------------------------------------------
+    "ASML", "ICHR", "KLIC", "KLAC", "TER",
+
+    # --------------------------------------------------------
+    # DATA CENTER / NETWORKING / OPTICAL
+    # --------------------------------------------------------
+    "AAOI", "ANET", "CIEN", "COHR", "CSCO",
+    "DELL", "GLW", "LITE", "NOK", "SNDK",
+    "TTMI",
+
+    # --------------------------------------------------------
+    # SOFTWARE / CYBERSECURITY
+    # --------------------------------------------------------
+    "ADBE", "APP", "CRM", "CRWD", "DDOG",
+    "INTU", "NET", "NOW", "PANW", "PATH",
+    "PLTR", "RBRK", "RNG", "SNOW", "SNPS",
+    "TEAM", "VEEV", "ZS",
+
+    # --------------------------------------------------------
+    # AI / CLOUD / INTERNET
+    # --------------------------------------------------------
+    "AMZN", "CRWV", "GOOG", "META",
+    "MSFT", "NBIS", "NFLX", "UBER",
+
+    # --------------------------------------------------------
+    # CONSUMER TECHNOLOGY
+    # --------------------------------------------------------
+    "AAPL", "TSLA",
+
+    # --------------------------------------------------------
+    # FINANCIAL / PAYMENTS / FINTECH / CRYPTO
+    # --------------------------------------------------------
+    "AXP", "COIN", "CRCL", "FISV",
+    "FOUR", "HOOD", "MA", "V",
+
+    # --------------------------------------------------------
+    # HEALTHCARE
+    # --------------------------------------------------------
+    "BSX", "ISRG",
+
+    # --------------------------------------------------------
+    # AEROSPACE / DEFENSE / SPACE / AUTONOMOUS
+    # --------------------------------------------------------
+    "ASTS", "AVAV", "BA", "LMT",
+    "ONDS", "RKLB", "SPCX", "XAR",
+
+    # --------------------------------------------------------
+    # POWER / UTILITIES
+    # --------------------------------------------------------
+    "BE", "CEG", "VST",
+
+    # --------------------------------------------------------
+    # DATA CENTER / POWER INFRASTRUCTURE
+    # --------------------------------------------------------
+    "APLD", "CORZ", "IREN", "VRT",
+
+    # --------------------------------------------------------
+    # INDUSTRIALS
+    # --------------------------------------------------------
+    "AGX", "CAT", "GE",
+
+    # --------------------------------------------------------
+    # MATERIALS / MINING / PRECIOUS METALS
+    # --------------------------------------------------------
+    "AA", "FCX", "GLD", "NEM", "SCCO", "SLV",
+
+    # --------------------------------------------------------
+    # CONSUMER / RETAIL / RESTAURANTS / APPAREL
+    # --------------------------------------------------------
+    "AEO", "ANF", "BBY", "CAVA", "COST",
+    "DPZ", "KO", "LEVI", "MNST", "RL",
+    "SHAK", "TGT", "TOST", "VSXY", "WMT",
+
+    # --------------------------------------------------------
+    # STATE STREET / SPDR SECTOR ETFs
+    # --------------------------------------------------------
+    "XLB", "XLC", "XLE", "XLF", "XLI",
+    "XLK", "XLP", "XLRE", "XLU", "XLV",
+    "XLY",
+
+    # --------------------------------------------------------
+    # BOND
+    # --------------------------------------------------------
+    "TLT",
+]
+
+tickers = list(dict.fromkeys(tickers))
+
+
+# ============================================================
+# CATEGORY MAP
+# ============================================================
+
+category_map = {}
+
+groups = {
+
+    "Semiconductors": [
+        "ALAB", "AMBA", "AMD", "AVGO", "CRDO", "DRAM",
+        "FORM", "INTC", "MRVL", "MU", "NVDA", "SKHY",
+        "STM", "TSM"
+    ],
+
+    "Semiconductor Equipment": [
+        "ASML", "ICHR", "KLIC", "KLAC", "TER"
+    ],
+
+    "Data Center / Networking": [
+        "AAOI", "ANET", "CIEN", "COHR", "CSCO",
+        "DELL", "GLW", "LITE", "NOK", "SNDK", "TTMI"
+    ],
+
+    "Software / Cybersecurity": [
+        "ADBE", "APP", "CRM", "CRWD", "DDOG", "INTU",
+        "NET", "NOW", "PANW", "PATH", "PLTR", "RBRK",
+        "RNG", "SNOW", "SNPS", "TEAM", "VEEV", "ZS"
+    ],
+
+    "AI / Cloud / Internet": [
+        "AMZN", "CRWV", "GOOG", "META",
+        "MSFT", "NBIS", "NFLX", "UBER"
+    ],
+
+    "Consumer Technology": [
+        "AAPL", "TSLA"
+    ],
+
+    "Financials / Fintech": [
+        "AXP", "COIN", "CRCL", "FISV",
+        "FOUR", "HOOD", "MA", "V"
+    ],
+
+    "Healthcare": [
+        "BSX", "ISRG"
+    ],
+
+    "Aerospace / Defense / Space": [
+        "ASTS", "AVAV", "BA", "LMT",
+        "ONDS", "RKLB", "SPCX", "XAR"
+    ],
+
+    "Power / Utilities": [
+        "BE", "CEG", "VST"
+    ],
+
+    "Data Center / Power Infrastructure": [
+        "APLD", "CORZ", "IREN", "VRT"
+    ],
+
+    "Industrials": [
+        "AGX", "CAT", "GE"
+    ],
+
+    "Materials / Mining / Precious Metals": [
+        "AA", "FCX", "GLD", "NEM", "SCCO", "SLV"
+    ],
+
+    "Consumer / Retail / Restaurants": [
+        "AEO", "ANF", "BBY", "CAVA", "COST",
+        "DPZ", "KO", "LEVI", "MNST", "RL",
+        "SHAK", "TGT", "TOST", "VSXY", "WMT"
+    ],
+
+    "Sector ETFs": [
+        "XLB", "XLC", "XLE", "XLF", "XLI",
+        "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY"
+    ],
+
+    "Bonds": [
+        "TLT"
+    ]
+}
+
+for category, names in groups.items():
+    for ticker in names:
+        category_map[ticker] = category
+
+
+# ============================================================
+# YAHOO FINANCE TICKER ALIASES
+# ============================================================
+#
+# These allow your displayed ticker to remain unchanged while
+# using the Yahoo Finance symbol where necessary.
+#
+# SK hynix trades in Korea.
+# Victoria's Secret is VSCO on Yahoo Finance.
+#
+# Other symbols that Yahoo cannot resolve will simply be
+# marked unavailable rather than crashing the application.
+# ============================================================
+
+yf_aliases = {
+    "SKHY": "000660.KS",
+    "VSXY": "VSCO",
 }
 
 
+def yf_symbol(ticker):
+    return yf_aliases.get(ticker, ticker)
+
+
 # ============================================================
-# TITLE
+# TIMEFRAME DEFINITIONS
 # ============================================================
 
-st.title("📈 My Stock Tracker")
+TIMEFRAMES = {
+    "Daily": 1,
+    "Weekly": 5,
+    "Monthly": 21,
+    "Semi-Annual": 126,
+    "Annual": 252
+}
 
-st.caption(
-    "1-Year Forward P/E Valuation Dashboard"
-)
+ANNUALIZATION = 252
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def format_market_cap(value):
+
+    if pd.isna(value):
+        return "N/A"
+
+    if value >= 1e12:
+        return f"${value / 1e12:.2f}T"
+
+    if value >= 1e9:
+        return f"${value / 1e9:.2f}B"
+
+    if value >= 1e6:
+        return f"${value / 1e6:.2f}M"
+
+    return f"${value:,.0f}"
+
+
+def get_return(prices, days):
+
+    if prices is None or len(prices) < days + 1:
+        return np.nan
+
+    try:
+        return prices.iloc[-1] / prices.iloc[-days - 1] - 1
+    except Exception:
+        return np.nan
+
+
+def get_realized_volatility(returns, days):
+
+    if returns is None or len(returns) < days:
+        return np.nan
+
+    window = returns.iloc[-days:]
+
+    if len(window) < 2:
+        return np.nan
+
+    # Annualised realized volatility
+    return window.std() * np.sqrt(ANNUALIZATION)
+
+
+# ============================================================
+# DOWNLOAD PRICE DATA
+# ============================================================
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def download_price_data(ticker_list):
+
+    result = {}
+
+    def download_one(ticker):
+
+        symbol = yf_symbol(ticker)
+
+        try:
+
+            data = yf.download(
+                symbol,
+                period="2y",
+                interval="1d",
+                auto_adjust=True,
+                progress=False,
+                threads=False
+            )
+
+            if data is None or data.empty:
+                return ticker, None
+
+            if isinstance(data.columns, pd.MultiIndex):
+                close = data["Close"].iloc[:, 0]
+            else:
+                close = data["Close"]
+
+            close = close.dropna()
+
+            if len(close) < 10:
+                return ticker, None
+
+            return ticker, close
+
+        except Exception:
+            return ticker, None
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+
+        futures = {
+            executor.submit(download_one, ticker): ticker
+            for ticker in ticker_list
+        }
+
+        for future in as_completed(futures):
+
+            ticker, prices = future.result()
+
+            if prices is not None:
+                result[ticker] = prices
+
+    return result
+
+
+# ============================================================
+# FUNDAMENTAL DATA
+# ============================================================
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def get_fundamental_data(ticker_list):
+
+    rows = []
+
+    def get_one(ticker):
+
+        symbol = yf_symbol(ticker)
+
+        result = {
+            "Ticker": ticker,
+            "Category": category_map.get(ticker, "Other"),
+            "Market Cap": np.nan,
+            "EPS Next Year": np.nan,
+            "EPS Following Year": np.nan,
+            "Revenue Next Year": np.nan,
+            "Revenue Following Year": np.nan,
+            "EPS Growth Next Year": np.nan,
+            "EPS Growth Following Year": np.nan,
+            "Revenue Growth Next Year": np.nan,
+            "Revenue Growth Following Year": np.nan,
+        }
+
+        try:
+
+            tk = yf.Ticker(symbol)
+
+            # --------------------------------------------
+            # INFO
+            # --------------------------------------------
+
+            try:
+                info = tk.info
+
+                market_cap = info.get("marketCap")
+
+                if market_cap is not None:
+                    result["Market Cap"] = market_cap
+
+            except Exception:
+                info = {}
+
+            # --------------------------------------------
+            # ANALYST ESTIMATES
+            # --------------------------------------------
+
+            try:
+
+                estimates = tk.get_earnings_estimate()
+
+                if estimates is not None and not estimates.empty:
+
+                    # Yahoo normally provides:
+                    #
+                    # 0q
+                    # +1q
+                    # 0y
+                    # +1y
+                    # +2y
+
+                    if "+1y" in estimates.index:
+                        result["EPS Next Year"] = estimates.loc["+1y"].get(
+                            "avg", np.nan
+                        )
+
+                    if "+2y" in estimates.index:
+                        result["EPS Following Year"] = estimates.loc["+2y"].get(
+                            "avg", np.nan
+                        )
+
+                    if "+1y" in estimates.index:
+                        result["EPS Growth Next Year"] = estimates.loc["+1y"].get(
+                            "growth", np.nan
+                        )
+
+                    if "+2y" in estimates.index:
+                        result["EPS Growth Following Year"] = estimates.loc["+2y"].get(
+                            "growth", np.nan
+                        )
+
+            except Exception:
+                pass
+
+            # --------------------------------------------
+            # REVENUE ESTIMATES
+            # --------------------------------------------
+
+            try:
+
+                revenue = tk.get_revenue_estimate()
+
+                if revenue is not None and not revenue.empty:
+
+                    if "+1y" in revenue.index:
+
+                        result["Revenue Next Year"] = revenue.loc["+1y"].get(
+                            "avg", np.nan
+                        )
+
+                        result["Revenue Growth Next Year"] = revenue.loc["+1y"].get(
+                            "growth", np.nan
+                        )
+
+                    if "+2y" in revenue.index:
+
+                        result["Revenue Following Year"] = revenue.loc["+2y"].get(
+                            "avg", np.nan
+                        )
+
+                        result["Revenue Growth Following Year"] = revenue.loc["+2y"].get(
+                            "growth", np.nan
+                        )
+
+            except Exception:
+                pass
+
+        except Exception:
+            pass
+
+        return result
+
+    with ThreadPoolExecutor(max_workers=6) as executor:
+
+        futures = {
+            executor.submit(get_one, ticker): ticker
+            for ticker in ticker_list
+        }
+
+        for future in as_completed(futures):
+
+            try:
+                rows.append(future.result())
+            except Exception:
+                pass
+
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# CALCULATE PERFORMANCE
+# ============================================================
+
+def calculate_performance(price_data):
+
+    rows = []
+
+    for ticker, prices in price_data.items():
+
+        returns = prices.pct_change().dropna()
+
+        row = {
+            "Ticker": ticker,
+            "Category": category_map.get(ticker, "Other"),
+        }
+
+        for name, days in TIMEFRAMES.items():
+
+            row[f"{name} Return"] = get_return(prices, days)
+
+            row[f"{name} Volatility"] = get_realized_volatility(
+                returns,
+                days
+            )
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# HEATMAP DATA
+# ============================================================
+
+def create_heatmap_dataframe(performance_df, fundamental_df, timeframe):
+
+    return_df = performance_df[
+        ["Ticker", f"{timeframe} Return"]
+    ].copy()
+
+    if fundamental_df is not None and not fundamental_df.empty:
+
+        return_df = return_df.merge(
+            fundamental_df[["Ticker", "Market Cap"]],
+            on="Ticker",
+            how="left"
+        )
+
+    else:
+
+        return_df["Market Cap"] = np.nan
+
+    return_df["Return"] = return_df[f"{timeframe} Return"]
+
+    return return_df[
+        ["Ticker", "Return", "Market Cap"]
+    ].dropna(subset=["Return"])
+
+
+# ============================================================
+# HEATMAP
+# ============================================================
+
+def render_heatmap(performance_df, fundamental_df, timeframe):
+
+    df = create_heatmap_dataframe(
+        performance_df,
+        fundamental_df,
+        timeframe
+    )
+
+    if df.empty:
+        st.warning("No performance data available.")
+        return
+
+    df = df.sort_values("Return", ascending=False)
+
+    # --------------------------------------------------------
+    # Grid dimensions
+    # --------------------------------------------------------
+
+    n = len(df)
+
+    cols = 8
+    rows = int(np.ceil(n / cols))
+
+    heatmap_matrix = np.full((rows, cols), np.nan)
+    ticker_matrix = np.full((rows, cols), "", dtype=object)
+
+    cap_matrix = np.full((rows, cols), "", dtype=object)
+
+    for i, (_, row) in enumerate(df.iterrows()):
+
+        r = i // cols
+        c = i % cols
+
+        heatmap_matrix[r, c] = row["Return"]
+        ticker_matrix[r, c] = row["Ticker"]
+
+        cap_matrix[r, c] = format_market_cap(
+            row["Market Cap"]
+        )
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=heatmap_matrix,
+            x=list(range(cols)),
+            y=list(range(rows)),
+            colorscale=[
+                [0.0, "#8B0000"],
+                [0.25, "#C0392B"],
+                [0.5, "#2C3E50"],
+                [0.75, "#27AE60"],
+                [1.0, "#00FF88"]
+            ],
+            zmid=0,
+            text=ticker_matrix,
+            customdata=cap_matrix,
+            hovertemplate=(
+                "<b>%{text}</b><br>"
+                "Return: %{z:.2%}<br>"
+                "Market Cap: %{customdata}"
+                "<extra></extra>"
+            ),
+            colorbar=dict(
+                title="Return"
+            )
+        )
+    )
+
+    # --------------------------------------------------------
+    # Add ticker + market cap text
+    # --------------------------------------------------------
+
+    for r in range(rows):
+
+        for c in range(cols):
+
+            if ticker_matrix[r, c] != "":
+
+                ret = heatmap_matrix[r, c]
+
+                fig.add_annotation(
+                    x=c,
+                    y=r,
+                    text=(
+                        f"<b>{ticker_matrix[r,c]}</b>"
+                        f"<br>"
+                        f"{ret:.1%}"
+                        f"<br>"
+                        f"<span style='font-size:10px'>"
+                        f"{cap_matrix[r,c]}"
+                        f"</span>"
+                    ),
+                    showarrow=False,
+                    font=dict(
+                        color="white",
+                        size=11
+                    )
+                )
+
+    fig.update_layout(
+        title=f"{timeframe} Return — Market Cap shown below return",
+        height=max(500, rows * 85),
+        xaxis=dict(
+            showticklabels=False,
+            showgrid=False
+        ),
+        yaxis=dict(
+            showticklabels=False,
+            showgrid=False,
+            autorange="reversed"
+        ),
+        margin=dict(
+            l=10,
+            r=10,
+            t=60,
+            b=10
+        )
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+
+# ============================================================
+# FORMAT TABLE
+# ============================================================
+
+def prepare_table(performance_df, fundamental_df):
+
+    df = performance_df.copy()
+
+    if fundamental_df is not None and not fundamental_df.empty:
+
+        df = df.merge(
+            fundamental_df,
+            on=["Ticker", "Category"],
+            how="left"
+        )
+
+    # --------------------------------------------------------
+    # Column order
+    # --------------------------------------------------------
+
+    desired_columns = [
+
+        "Ticker",
+        "Category",
+        "Market Cap",
+
+        "Daily Return",
+        "Weekly Return",
+        "Monthly Return",
+        "Semi-Annual Return",
+        "Annual Return",
+
+        "Daily Volatility",
+        "Weekly Volatility",
+        "Monthly Volatility",
+        "Semi-Annual Volatility",
+        "Annual Volatility",
+
+        "EPS Next Year",
+        "EPS Following Year",
+
+        "Revenue Next Year",
+        "Revenue Following Year",
+
+        "EPS Growth Next Year",
+        "EPS Growth Following Year",
+
+        "Revenue Growth Next Year",
+        "Revenue Growth Following Year",
+    ]
+
+    existing = [
+        col for col in desired_columns
+        if col in df.columns
+    ]
+
+    return df[existing]
+
+
+# ============================================================
+# TABLE FILTERS
+# ============================================================
+
+def apply_filters(df):
+
+    st.markdown("### Filters")
+
+    c1, c2, c3 = st.columns([1, 1, 2])
+
+    with c1:
+
+        categories = sorted(
+            df["Category"].dropna().unique()
+        )
+
+        selected_categories = st.multiselect(
+            "Category",
+            categories,
+            default=categories
+        )
+
+    with c2:
+
+        selected_tickers = st.multiselect(
+            "Ticker",
+            sorted(df["Ticker"].unique()),
+            default=[]
+        )
+
+    with c3:
+
+        search = st.text_input(
+            "Search ticker",
+            placeholder="e.g. NVDA, AMD, PLTR..."
+        )
+
+    filtered = df.copy()
+
+    if selected_categories:
+
+        filtered = filtered[
+            filtered["Category"].isin(selected_categories)
+        ]
+
+    if selected_tickers:
+
+        filtered = filtered[
+            filtered["Ticker"].isin(selected_tickers)
+        ]
+
+    if search:
+
+        filtered = filtered[
+            filtered["Ticker"].str.contains(
+                search.upper(),
+                na=False
+            )
+        ]
+
+    # --------------------------------------------------------
+    # Numeric filters
+    # --------------------------------------------------------
+
+    with st.expander("Advanced numeric filters"):
+
+        numeric_columns = [
+            "Market Cap",
+            "Daily Return",
+            "Weekly Return",
+            "Monthly Return",
+            "Semi-Annual Return",
+            "Annual Return",
+            "Daily Volatility",
+            "Weekly Volatility",
+            "Monthly Volatility",
+            "Semi-Annual Volatility",
+            "Annual Volatility",
+        ]
+
+        available_numeric = [
+            c for c in numeric_columns
+            if c in filtered.columns
+        ]
+
+        selected_metric = st.selectbox(
+            "Filter metric",
+            available_numeric
+        )
+
+        series = filtered[selected_metric].dropna()
+
+        if not series.empty:
+
+            minimum = float(series.min())
+            maximum = float(series.max())
+
+            if minimum < maximum:
+
+                lower, upper = st.slider(
+                    f"{selected_metric} range",
+                    min_value=minimum,
+                    max_value=maximum,
+                    value=(minimum, maximum)
+                )
+
+                filtered = filtered[
+                    filtered[selected_metric].between(
+                        lower,
+                        upper
+                    )
+                ]
+
+    return filtered
+
+
+# ============================================================
+# RETURN / VOLATILITY TABLE
+# ============================================================
+
+def render_return_volatility_table(
+    performance_df,
+    fundamental_df,
+    timeframe
+):
+
+    return_col = f"{timeframe} Return"
+    vol_col = f"{timeframe} Volatility"
+
+    df = performance_df[
+        [
+            "Ticker",
+            "Category",
+            return_col,
+            vol_col
+        ]
+    ].copy()
+
+    if fundamental_df is not None and not fundamental_df.empty:
+
+        df = df.merge(
+            fundamental_df[
+                ["Ticker", "Market Cap"]
+            ],
+            on="Ticker",
+            how="left"
+        )
+
+    else:
+
+        df["Market Cap"] = np.nan
+
+    df["Return / Volatility"] = (
+        df[return_col] /
+        df[vol_col].replace(0, np.nan)
+    )
+
+    df = df.sort_values(
+        "Return / Volatility",
+        ascending=False
+    )
+
+    display_df = df.rename(
+        columns={
+            return_col: "Return",
+            vol_col: "Realised Volatility"
+        }
+    )
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+
+            "Return": st.column_config.NumberColumn(
+                "Return",
+                format="%.2%"
+            ),
+
+            "Realised Volatility": st.column_config.NumberColumn(
+                "Realised Volatility",
+                format="%.2%"
+            ),
+
+            "Return / Volatility": st.column_config.NumberColumn(
+                "Return / Volatility",
+                format="%.2f"
+            ),
+
+            "Market Cap": st.column_config.NumberColumn(
+                "Market Cap",
+                format="$%.0f"
+            )
+        }
+    )
+
+    return df
 
 
 # ============================================================
 # SIDEBAR
 # ============================================================
 
-st.sidebar.header("Dashboard Settings")
+st.sidebar.title("📊 Equity Dashboard")
 
-
-# ------------------------------------------------------------
-# STOCK SELECTION
-# ------------------------------------------------------------
-
-selected_tickers = st.sidebar.multiselect(
-    "Select Stocks",
-    options=list(DEFAULT_STOCKS.keys()),
-    default=list(DEFAULT_STOCKS.keys())
+st.sidebar.markdown(
+    "### Universe"
 )
 
-
-# ------------------------------------------------------------
-# PERIOD
-# ------------------------------------------------------------
-
-period = st.sidebar.selectbox(
-    "Price History",
-    ["6mo", "1y", "2y", "5y"],
-    index=1
+st.sidebar.write(
+    f"**{len(tickers)} tickers**"
 )
-
 
 st.sidebar.divider()
 
+st.sidebar.markdown(
+    """
+### Data
 
-# ============================================================
-# VALUATION INPUTS
-# ============================================================
+Prices: Yahoo Finance  
+Frequency: Daily  
+Volatility: Annualised realised volatility  
+Returns: Price returns
+"""
+)
 
-st.sidebar.subheader("Valuation Inputs")
+if st.sidebar.button("🔄 Refresh data"):
 
-stocks = {}
+    st.cache_data.clear()
 
-
-for ticker in selected_tickers:
-
-    st.sidebar.markdown(f"### {ticker}")
-
-    forward_eps = st.sidebar.number_input(
-        f"{ticker} Forward EPS",
-        min_value=0.01,
-        value=float(
-            DEFAULT_STOCKS[ticker]["forward_eps"]
-        ),
-        step=0.01,
-        format="%.2f",
-        key=f"eps_{ticker}"
-    )
-
-    target_price = st.sidebar.number_input(
-        f"{ticker} Target Price",
-        min_value=0.01,
-        value=float(
-            DEFAULT_STOCKS[ticker]["tp"]
-        ),
-        step=1.0,
-        format="%.2f",
-        key=f"tp_{ticker}"
-    )
-
-    stocks[ticker] = {
-        "forward_eps": forward_eps,
-        "tp": target_price
-    }
+    st.rerun()
 
 
 # ============================================================
-# NO STOCK SELECTED
+# HEADER
 # ============================================================
 
-if not selected_tickers:
+st.title("📊 Equity Factor & Momentum Dashboard")
 
-    st.warning(
-        "Please select at least one stock from the sidebar."
-    )
-
-    st.stop()
-
-
-# ============================================================
-# DATA LOADING
-# ============================================================
-
-@st.cache_data(ttl=300)
-def load_prices(tickers, period):
-
-    data = yf.download(
-        list(tickers),
-        period=period,
-        interval="1d",
-        auto_adjust=True,
-        progress=False
-    )
-
-    return data["Close"]
-
-
-@st.cache_data(ttl=300)
-def load_earnings_dates(ticker):
-
-    try:
-
-        earnings = yf.Ticker(
-            ticker
-        ).get_earnings_dates(
-            limit=12
-        )
-
-        if earnings is None or len(earnings) == 0:
-
-            return pd.DatetimeIndex([])
-
-        earnings_dates = pd.to_datetime(
-            earnings.index
-        )
-
-        # Remove timezone
-        if earnings_dates.tz is not None:
-
-            earnings_dates = (
-                earnings_dates
-                .tz_localize(None)
-            )
-
-        return earnings_dates
-
-    except Exception:
-
-        return pd.DatetimeIndex([])
+st.caption(
+    "Performance • Realised Volatility • Market Capitalisation • "
+    "Analyst Estimates"
+)
 
 
 # ============================================================
 # LOAD DATA
 # ============================================================
 
-with st.spinner("Loading market data..."):
+with st.spinner("Downloading market data..."):
 
-    prices = load_prices(
-        tuple(selected_tickers),
-        period
+    price_data = download_price_data(
+        tuple(tickers)
     )
 
 
+if not price_data:
+
+    st.error(
+        "Yahoo Finance did not return any price data. "
+        "Please try refreshing."
+    )
+
+    st.stop()
+
+
 # ============================================================
-# CREATE FIGURE
+# PERFORMANCE
 # ============================================================
 
-fig = make_subplots(
-    rows=len(selected_tickers),
-    cols=1,
-    shared_xaxes=True,
-    vertical_spacing=0.05,
-    subplot_titles=[
-        f"{ticker} — Forward P/E"
-        for ticker in selected_tickers
-    ]
+performance_df = calculate_performance(
+    price_data
 )
 
 
 # ============================================================
-# SNAPSHOT
+# FUNDAMENTALS
 # ============================================================
 
-snapshot = {}
-
-
-# ============================================================
-# PROCESS EACH STOCK
-# ============================================================
-
-for row, ticker in enumerate(
-    selected_tickers,
-    start=1
+with st.spinner(
+    "Loading market capitalisation and analyst estimates..."
 ):
 
-    eps = stocks[ticker]["forward_eps"]
-
-    tp = stocks[ticker]["tp"]
-
-
-    # --------------------------------------------------------
-    # PRICE DATA
-    # --------------------------------------------------------
-
-    if len(selected_tickers) == 1:
-
-        price = prices.dropna()
-
-    else:
-
-        price = prices[ticker].dropna()
-
-
-    if len(price) == 0:
-
-        continue
-
-
-    # --------------------------------------------------------
-    # 20-DAY MOVING AVERAGE
-    # --------------------------------------------------------
-
-    ma20 = price.rolling(
-        window=20
-    ).mean()
-
-
-    # --------------------------------------------------------
-    # FORWARD P/E
-    # --------------------------------------------------------
-
-    pe = price / eps
-
-
-    # --------------------------------------------------------
-    # HIGH P/E
-    # --------------------------------------------------------
-
-    highest_pe = pe.max()
-
-    highest_date = pe.idxmax()
-
-    highest_price = price.loc[
-        highest_date
-    ]
-
-
-    # --------------------------------------------------------
-    # CURRENT VALUES
-    # --------------------------------------------------------
-
-    current_price = price.iloc[-1]
-
-    current_ma20 = ma20.iloc[-1]
-
-    current_pe = pe.iloc[-1]
-
-
-    # --------------------------------------------------------
-    # PRICE VS MA
-    # --------------------------------------------------------
-
-    if pd.notna(current_ma20):
-
-        price_vs_ma = (
-            current_price / current_ma20 - 1
-        ) * 100
-
-    else:
-
-        price_vs_ma = 0
-
-
-    # --------------------------------------------------------
-    # TARGET PRICE P/E
-    # --------------------------------------------------------
-
-    tp_pe = tp / eps
-
-
-    # --------------------------------------------------------
-    # UPSIDE TO TARGET
-    # --------------------------------------------------------
-
-    upside = (
-        tp / current_price - 1
-    ) * 100
-
-
-    # --------------------------------------------------------
-    # SAVE SNAPSHOT
-    # --------------------------------------------------------
-
-    snapshot[ticker] = {
-
-        "price": current_price,
-
-        "ma20": current_ma20,
-
-        "price_vs_ma": price_vs_ma,
-
-        "eps": eps,
-
-        "pe": current_pe,
-
-        "tp": tp,
-
-        "tp_pe": tp_pe,
-
-        "high_pe": highest_pe,
-
-        "upside": upside
-    }
-
-
-    # ========================================================
-    # FORWARD P/E LINE
-    # ========================================================
-
-    fig.add_trace(
-
-        go.Scatter(
-
-            x=pe.index,
-
-            y=pe,
-
-            mode="lines",
-
-            name=ticker,
-
-            customdata=[
-                [
-                    price.loc[d],
-                    eps
-                ]
-                for d in pe.index
-            ],
-
-            hovertemplate=(
-
-                f"<b>{ticker}</b><br>"
-
-                "Date: %{x|%d %b %Y}<br>"
-
-                "Price: $%{customdata[0]:.2f}<br>"
-
-                "Forward EPS: $%{customdata[1]:.2f}<br>"
-
-                "Forward P/E: %{y:.2f}x"
-
-                "<extra></extra>"
-            ),
-
-            line=dict(
-                width=2.5,
-                color="#2563eb"
-            ),
-
-            showlegend=False
-        ),
-
-        row=row,
-        col=1
+    fundamental_df = get_fundamental_data(
+        tuple(tickers)
     )
 
 
-    # ========================================================
-    # 1-YEAR HIGH P/E
-    # ========================================================
+# ============================================================
+# TOP METRICS
+# ============================================================
 
-    fig.add_trace(
+col1, col2, col3, col4 = st.columns(4)
 
-        go.Scatter(
+with col1:
 
-            x=[highest_date],
+    st.metric(
+        "Universe",
+        f"{len(tickers)}"
+    )
 
-            y=[highest_pe],
+with col2:
 
-            mode="markers+text",
+    st.metric(
+        "Price Data",
+        f"{len(price_data)}"
+    )
 
-            text=[
-                f"High: {highest_pe:.1f}x"
-            ],
+with col3:
 
-            textposition="top center",
+    available_fundamentals = (
+        fundamental_df["Market Cap"]
+        .notna()
+        .sum()
+        if not fundamental_df.empty
+        else 0
+    )
 
-            marker=dict(
-                size=13,
-                symbol="diamond",
-                color="red"
-            ),
+    st.metric(
+        "Market Caps",
+        f"{available_fundamentals}"
+    )
 
-            hovertemplate=(
+with col4:
 
-                f"<b>{ticker} HIGH P/E</b><br>"
-
-                f"Date: "
-                f"{highest_date:%d %b %Y}<br>"
-
-                f"Price: "
-                f"${highest_price:.2f}<br>"
-
-                f"Forward EPS: "
-                f"${eps:.2f}<br>"
-
-                f"Forward P/E: "
-                f"{highest_pe:.2f}x"
-
-                "<extra></extra>"
-            ),
-
-            showlegend=False
-        ),
-
-        row=row,
-        col=1
+    st.metric(
+        "Updated",
+        datetime.now().strftime("%d %b %Y")
     )
 
 
-    # ========================================================
-    # TARGET P/E LINE
-    # ========================================================
+# ============================================================
+# SECTION 1 — HEATMAP
+# ============================================================
 
-    fig.add_trace(
+st.divider()
 
-        go.Scatter(
+st.header("1. Performance Heat Map")
 
-            x=[
-                pe.index.min(),
-                pe.index.max()
-            ],
+heatmap_timeframe = st.radio(
+    "Select timeframe",
+    [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Semi-Annual",
+        "Annual"
+    ],
+    horizontal=True,
+    key="heatmap_timeframe"
+)
 
-            y=[
-                tp_pe,
-                tp_pe
-            ],
-
-            mode="lines",
-
-            line=dict(
-                dash="dash",
-                width=2,
-                color="green"
-            ),
-
-            hovertemplate=(
-
-                f"<b>{ticker} TARGET</b><br>"
-
-                f"Target Price: "
-                f"${tp:.2f}<br>"
-
-                f"Forward EPS: "
-                f"${eps:.2f}<br>"
-
-                f"Target Forward P/E: "
-                f"{tp_pe:.2f}x"
-
-                "<extra></extra>"
-            ),
-
-            showlegend=False
-        ),
-
-        row=row,
-        col=1
-    )
+render_heatmap(
+    performance_df,
+    fundamental_df,
+    heatmap_timeframe
+)
 
 
-    # ========================================================
-    # EARNINGS DATES
-    # ========================================================
+# ============================================================
+# SECTION 2 — MAIN TABLE
+# ============================================================
 
-    earnings_dates = load_earnings_dates(
-        ticker
-    )
+st.divider()
 
+st.header("2. Equity Returns, Volatility & Fundamentals")
 
-    if len(earnings_dates) > 0:
+st.caption(
+    "Click any column header to sort. Use the filters below "
+    "to narrow the universe."
+)
 
-        chart_start = pd.Timestamp(
-            pe.index.min()
-        ).tz_localize(None)
+main_table = prepare_table(
+    performance_df,
+    fundamental_df
+)
 
-        chart_end = pd.Timestamp(
-            pe.index.max()
-        ).tz_localize(None)
-
-
-        earnings_dates = earnings_dates[
-            (earnings_dates >= chart_start)
-            &
-            (earnings_dates <= chart_end)
-        ]
+filtered_table = apply_filters(
+    main_table
+)
 
 
-        earnings_dates = (
-            earnings_dates
-            .drop_duplicates()
-            .sort_values()
+# ------------------------------------------------------------
+# FORMAT MAIN TABLE
+# ------------------------------------------------------------
+
+percent_columns = [
+
+    "Daily Return",
+    "Weekly Return",
+    "Monthly Return",
+    "Semi-Annual Return",
+    "Annual Return",
+
+    "Daily Volatility",
+    "Weekly Volatility",
+    "Monthly Volatility",
+    "Semi-Annual Volatility",
+    "Annual Volatility",
+
+    "EPS Growth Next Year",
+    "EPS Growth Following Year",
+
+    "Revenue Growth Next Year",
+    "Revenue Growth Following Year",
+]
+
+column_config = {}
+
+for col in percent_columns:
+
+    if col in filtered_table.columns:
+
+        column_config[col] = st.column_config.NumberColumn(
+            col,
+            format="%.2%"
         )
 
 
-        # Last 4 earnings
+if "Market Cap" in filtered_table.columns:
 
-        earnings_dates = earnings_dates[-4:]
-
-
-        # ----------------------------------------------------
-        # DRAW EARNINGS LINES
-        # ----------------------------------------------------
-
-        for earnings_date in earnings_dates:
-
-            fig.add_vline(
-
-                x=earnings_date,
-
-                line_width=2,
-
-                line_dash="dot",
-
-                line_color="orange",
-
-                row=row,
-
-                col=1
-            )
-
-
-    # ========================================================
-    # Y AXIS
-    # ========================================================
-
-    fig.update_yaxes(
-
-        title_text="P/E (x)",
-
-        showline=True,
-
-        linewidth=2,
-
-        linecolor="black",
-
-        showgrid=True,
-
-        gridcolor="#e5e7eb",
-
-        ticks="outside",
-
-        tickformat=".0f",
-
-        row=row,
-
-        col=1
+    column_config["Market Cap"] = (
+        st.column_config.NumberColumn(
+            "Market Capitalisation",
+            format="$%.0f"
+        )
     )
 
 
-# ============================================================
-# X AXIS
-# ============================================================
+if "EPS Next Year" in filtered_table.columns:
 
-fig.update_xaxes(
+    column_config["EPS Next Year"] = (
+        st.column_config.NumberColumn(
+            "EPS Next Year",
+            format="$%.2f"
+        )
+    )
 
-    showline=True,
 
-    linewidth=2,
+if "EPS Following Year" in filtered_table.columns:
 
-    linecolor="black",
+    column_config["EPS Following Year"] = (
+        st.column_config.NumberColumn(
+            "EPS Following Year",
+            format="$%.2f"
+        )
+    )
 
-    showgrid=True,
 
-    gridcolor="#e5e7eb",
+if "Revenue Next Year" in filtered_table.columns:
 
-    ticks="outside",
+    column_config["Revenue Next Year"] = (
+        st.column_config.NumberColumn(
+            "Revenue Next Year",
+            format="$%.0f"
+        )
+    )
 
-    tickformat="%b %Y",
 
-    row=len(selected_tickers),
+if "Revenue Following Year" in filtered_table.columns:
 
-    col=1
+    column_config["Revenue Following Year"] = (
+        st.column_config.NumberColumn(
+            "Revenue Following Year",
+            format="$%.0f"
+        )
+    )
+
+
+st.dataframe(
+    filtered_table,
+    use_container_width=True,
+    hide_index=True,
+    height=700,
+    column_config=column_config
 )
 
 
 # ============================================================
-# GRAPH LAYOUT
+# SECTION 3 — RETURN VS REALISED VOLATILITY
 # ============================================================
+
+st.divider()
+
+st.header("3. Return vs. Realised Volatility")
+
+rv_timeframe = st.radio(
+    "Select timeframe",
+    [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Semi-Annual",
+        "Annual"
+    ],
+    horizontal=True,
+    key="rv_timeframe"
+)
+
+
+return_col = f"{rv_timeframe} Return"
+vol_col = f"{rv_timeframe} Volatility"
+
+
+rv_df = performance_df[
+    [
+        "Ticker",
+        "Category",
+        return_col,
+        vol_col
+    ]
+].copy()
+
+
+if fundamental_df is not None and not fundamental_df.empty:
+
+    rv_df = rv_df.merge(
+        fundamental_df[
+            ["Ticker", "Market Cap"]
+        ],
+        on="Ticker",
+        how="left"
+    )
+
+
+rv_df["Return / Volatility"] = (
+    rv_df[return_col] /
+    rv_df[vol_col].replace(0, np.nan)
+)
+
+
+rv_df = rv_df.dropna(
+    subset=[return_col, vol_col]
+)
+
+
+# ============================================================
+# SCATTER PLOT
+# ============================================================
+
+fig = px.scatter(
+    rv_df,
+    x=vol_col,
+    y=return_col,
+    color="Category",
+    text="Ticker",
+    hover_data=[
+        "Ticker",
+        "Category",
+        "Market Cap"
+    ],
+    size="Market Cap",
+    size_max=30,
+    title=f"{rv_timeframe} Return vs Realised Volatility"
+)
+
+fig.update_traces(
+    textposition="top center",
+    textfont=dict(size=9)
+)
+
+
+# ------------------------------------------------------------
+# Add zero lines
+# ------------------------------------------------------------
+
+fig.add_hline(
+    y=0,
+    line_dash="dash",
+    line_color="gray"
+)
+
+fig.add_vline(
+    x=rv_df[vol_col].median(),
+    line_dash="dash",
+    line_color="gray"
+)
+
 
 fig.update_layout(
-
-    title=dict(
-
-        text=(
-            "Forward P/E — "
-            "Individual Stock Valuation"
-        ),
-
-        font=dict(size=20)
-    ),
-
-    template="plotly_white",
-
-    height=max(
-        350 * len(selected_tickers),
-        600
-    ),
-
-    hovermode="closest",
-
-    margin=dict(
-        l=80,
-        r=50,
-        t=100,
-        b=50
-    )
+    height=650,
+    xaxis_title="Realised Volatility",
+    yaxis_title=f"{rv_timeframe} Return",
+    legend_title="Category"
 )
 
 
-# ============================================================
-# DISPLAY CHART
-# ============================================================
+fig.update_xaxes(
+    tickformat=".0%"
+)
+
+fig.update_yaxes(
+    tickformat=".0%"
+)
+
 
 st.plotly_chart(
     fig,
@@ -668,167 +1394,91 @@ st.plotly_chart(
 
 
 # ============================================================
-# KPI SECTION
+# RETURN / VOLATILITY RANKING
 # ============================================================
 
 st.subheader(
-    "Current Valuation"
+    f"{rv_timeframe} Return / Realised Volatility Ranking"
+)
+
+rv_display = rv_df[
+    [
+        "Ticker",
+        "Category",
+        "Market Cap",
+        return_col,
+        vol_col,
+        "Return / Volatility"
+    ]
+].copy()
+
+
+rv_display = rv_display.sort_values(
+    "Return / Volatility",
+    ascending=False
 )
 
 
-kpi_columns = st.columns(
-    len(selected_tickers)
-)
+st.dataframe(
+    rv_display,
+    use_container_width=True,
+    hide_index=True,
+    column_config={
 
+        "Market Cap": st.column_config.NumberColumn(
+            "Market Cap",
+            format="$%.0f"
+        ),
 
-for col, ticker in zip(
-    kpi_columns,
-    selected_tickers
-):
+        return_col: st.column_config.NumberColumn(
+            "Return",
+            format="%.2%"
+        ),
 
-    data = snapshot[ticker]
+        vol_col: st.column_config.NumberColumn(
+            "Realised Volatility",
+            format="%.2%"
+        ),
 
-
-    with col:
-
-        st.metric(
-
-            label=f"{ticker} Price",
-
-            value=(
-                f"${data['price']:.2f}"
-            ),
-
-            delta=(
-                f"{data['upside']:+.1f}% "
-                "to TP"
-            )
+        "Return / Volatility": st.column_config.NumberColumn(
+            "Return / Volatility",
+            format="%.2f"
         )
-
-
-# ============================================================
-# SNAPSHOT TABLE
-# ============================================================
-
-st.subheader(
-    "Current Valuation Snapshot"
-)
-
-
-snapshot_df = pd.DataFrame(
-    snapshot
-).T
-
-
-snapshot_df.index.name = "Stock"
-
-
-display_df = snapshot_df.rename(
-
-    columns={
-
-        "price": "Price",
-
-        "ma20": "1M MA",
-
-        "price_vs_ma": "vs MA",
-
-        "eps": "Fwd EPS",
-
-        "pe": "Fwd P/E",
-
-        "tp": "TP",
-
-        "tp_pe": "TP P/E",
-
-        "high_pe": "1Y High P/E",
-
-        "upside": "Upside"
     }
 )
 
 
 # ============================================================
-# FORMAT TABLE
+# DATA QUALITY
 # ============================================================
 
-display_df["Price"] = (
-    display_df["Price"]
-    .map(lambda x: f"${x:.2f}")
-)
+with st.expander("Data quality / unavailable tickers"):
 
+    unavailable = [
+        ticker
+        for ticker in tickers
+        if ticker not in price_data
+    ]
 
-display_df["1M MA"] = (
-    display_df["1M MA"]
-    .map(lambda x: f"${x:.2f}")
-)
+    if unavailable:
 
+        st.warning(
+            f"{len(unavailable)} tickers did not return price data:"
+        )
 
-display_df["vs MA"] = (
-    display_df["vs MA"]
-    .map(lambda x: f"{x:+.1f}%")
-)
+        st.write(
+            ", ".join(unavailable)
+        )
 
+    else:
 
-display_df["Fwd EPS"] = (
-    display_df["Fwd EPS"]
-    .map(lambda x: f"${x:.2f}")
-)
+        st.success(
+            "Price data available for all tickers."
+        )
 
-
-display_df["Fwd P/E"] = (
-    display_df["Fwd P/E"]
-    .map(lambda x: f"{x:.2f}x")
-)
-
-
-display_df["TP"] = (
-    display_df["TP"]
-    .map(lambda x: f"${x:.2f}")
-)
-
-
-display_df["TP P/E"] = (
-    display_df["TP P/E"]
-    .map(lambda x: f"{x:.2f}x")
-)
-
-
-display_df["1Y High P/E"] = (
-    display_df["1Y High P/E"]
-    .map(lambda x: f"{x:.2f}x")
-)
-
-
-display_df["Upside"] = (
-    display_df["Upside"]
-    .map(lambda x: f"{x:+.1f}%")
-)
-
-
-# ============================================================
-# DISPLAY TABLE
-# ============================================================
-
-st.dataframe(
-    display_df,
-    use_container_width=True
-)
-
-
-# ============================================================
-# LEGEND
-# ============================================================
-
-st.caption(
-    "🔵 Forward P/E  |  "
-    "🟢 Target Price P/E  |  "
-    "🔴 Highest P/E  |  "
-    "🟠 Earnings Date"
-)
-
-
-st.caption(
-    "Market data provided by Yahoo Finance via yfinance. "
-    "Forward EPS and target prices are manually entered inputs."
-)
+    st.caption(
+        "Analyst estimates are supplied by Yahoo Finance and "
+        "may be unavailable for some securities. "
+        "ETF and commodity instruments generally do not have "
+        "company-style EPS/revenue estimates."
+    )
