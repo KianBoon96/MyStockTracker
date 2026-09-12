@@ -100,11 +100,22 @@ def format_revenue(value):
     return f"${value:,.0f}"
 
 
+def format_percentage(value):
+
+    if pd.isna(value):
+        return "—"
+
+    return f"{value * 100:,.1f}%"
+
+
 # ============================================================
-# PREPARE VALUATION TABLE
+# PREPARE TABLE
 # ============================================================
 
-def prepare_valuation_table(fundamental_df):
+def prepare_valuation_table(
+    performance_df,
+    fundamental_df
+):
 
     if (
         fundamental_df is None
@@ -112,9 +123,15 @@ def prepare_valuation_table(fundamental_df):
     ):
         return pd.DataFrame()
 
-    df = fundamental_df.copy()
 
-    required_columns = [
+    fundamentals = fundamental_df.copy()
+
+
+    # ========================================================
+    # ENSURE FUNDAMENTAL COLUMNS EXIST
+    # ========================================================
+
+    fundamental_columns = [
         "Ticker",
         "Category",
         "Current Price",
@@ -125,17 +142,17 @@ def prepare_valuation_table(fundamental_df):
         "NTM Revenue",
     ]
 
-    for column in required_columns:
+    for column in fundamental_columns:
 
-        if column not in df.columns:
-            df[column] = np.nan
+        if column not in fundamentals.columns:
+            fundamentals[column] = np.nan
 
 
     # ========================================================
-    # P/E MULTIPLES
+    # VALUATION MULTIPLES
     # ========================================================
 
-    df["P/E TTM"] = df.apply(
+    fundamentals["P/E TTM"] = fundamentals.apply(
         lambda row: safe_divide(
             row["Current Price"],
             row["TTM EPS"]
@@ -143,7 +160,8 @@ def prepare_valuation_table(fundamental_df):
         axis=1
     )
 
-    df["P/E NTM"] = df.apply(
+
+    fundamentals["P/E NTM"] = fundamentals.apply(
         lambda row: safe_divide(
             row["Current Price"],
             row["NTM EPS"]
@@ -152,14 +170,7 @@ def prepare_valuation_table(fundamental_df):
     )
 
 
-    # ========================================================
-    # PRICE / SALES MULTIPLES
-    #
-    # Company revenue belongs to the whole company,
-    # therefore Market Cap / Revenue is used.
-    # ========================================================
-
-    df["P/S TTM"] = df.apply(
+    fundamentals["P/S TTM"] = fundamentals.apply(
         lambda row: safe_divide(
             row["Market Cap"],
             row["TTM Revenue"]
@@ -167,7 +178,8 @@ def prepare_valuation_table(fundamental_df):
         axis=1
     )
 
-    df["P/S NTM"] = df.apply(
+
+    fundamentals["P/S NTM"] = fundamentals.apply(
         lambda row: safe_divide(
             row["Market Cap"],
             row["NTM Revenue"]
@@ -176,15 +188,74 @@ def prepare_valuation_table(fundamental_df):
     )
 
 
+    # ========================================================
+    # PERFORMANCE DATA
+    # ========================================================
+
+    performance_columns = [
+        "Ticker",
+        "Daily Return",
+        "Weekly Return",
+        "Monthly Return",
+        "Annual Return",
+        "Annual Volatility",
+    ]
+
+
+    if (
+        performance_df is not None
+        and not performance_df.empty
+    ):
+
+        performance = performance_df.copy()
+
+        for column in performance_columns:
+
+            if column not in performance.columns:
+                performance[column] = np.nan
+
+
+        performance = performance[
+            performance_columns
+        ]
+
+
+        df = fundamentals.merge(
+            performance,
+            on="Ticker",
+            how="left"
+        )
+
+    else:
+
+        df = fundamentals.copy()
+
+        for column in performance_columns[1:]:
+            df[column] = np.nan
+
+
+    # ========================================================
+    # FINAL COLUMN ORDER
+    # ========================================================
+
     return df[
         [
             "Ticker",
             "Category",
+
             "Current Price",
+
+            "Daily Return",
+            "Weekly Return",
+            "Monthly Return",
+            "Annual Return",
+            "Annual Volatility",
+
             "TTM EPS",
             "NTM EPS",
             "P/E TTM",
             "P/E NTM",
+
             "TTM Revenue",
             "NTM Revenue",
             "P/S TTM",
@@ -200,6 +271,7 @@ def prepare_valuation_table(fundamental_df):
 def apply_filters(df):
 
     col1, col2 = st.columns(2)
+
 
     with col1:
 
@@ -286,50 +358,76 @@ def format_valuation_table(df):
 
     display = df.copy()
 
+
     display["Current Price"] = (
         display["Current Price"]
         .apply(format_price)
     )
+
+
+    return_columns = [
+        "Daily Return",
+        "Weekly Return",
+        "Monthly Return",
+        "Annual Return",
+        "Annual Volatility",
+    ]
+
+    for column in return_columns:
+
+        display[column] = (
+            display[column]
+            .apply(format_percentage)
+        )
+
 
     display["TTM EPS"] = (
         display["TTM EPS"]
         .apply(format_eps)
     )
 
+
     display["NTM EPS"] = (
         display["NTM EPS"]
         .apply(format_eps)
     )
+
 
     display["P/E TTM"] = (
         display["P/E TTM"]
         .apply(format_multiple)
     )
 
+
     display["P/E NTM"] = (
         display["P/E NTM"]
         .apply(format_multiple)
     )
+
 
     display["TTM Revenue"] = (
         display["TTM Revenue"]
         .apply(format_revenue)
     )
 
+
     display["NTM Revenue"] = (
         display["NTM Revenue"]
         .apply(format_revenue)
     )
+
 
     display["P/S TTM"] = (
         display["P/S TTM"]
         .apply(format_multiple)
     )
 
+
     display["P/S NTM"] = (
         display["P/S NTM"]
         .apply(format_multiple)
     )
+
 
     return display
 
@@ -347,17 +445,20 @@ def show_equity_table(
 
     st.divider()
 
+
     st.header(
-        "2. Equity Valuation"
+        "2. Equity Valuation & Performance"
     )
 
+
     st.caption(
-        "Current valuation based on trailing and forward "
-        "earnings and revenue estimates."
+        "Price, returns, realised volatility, "
+        "earnings multiples and revenue multiples."
     )
 
 
     valuation_df = prepare_valuation_table(
+        performance_df,
         fundamental_df
     )
 
@@ -384,6 +485,7 @@ def show_equity_table(
         [2, 1]
     )
 
+
     with col1:
 
         sort_by = st.selectbox(
@@ -391,6 +493,11 @@ def show_equity_table(
             [
                 "Ticker",
                 "Current Price",
+                "Daily Return",
+                "Weekly Return",
+                "Monthly Return",
+                "Annual Return",
+                "Annual Volatility",
                 "P/E TTM",
                 "P/E NTM",
                 "P/S TTM",
@@ -439,6 +546,7 @@ def show_equity_table(
 
 
     st.caption(
+        "Annual Volatility is annualised realised volatility. "
         "P/E TTM = Current Price ÷ TTM EPS • "
         "P/E NTM = Current Price ÷ Forward EPS • "
         "P/S TTM = Market Cap ÷ TTM Revenue • "
