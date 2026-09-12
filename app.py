@@ -29,46 +29,7 @@ st.sidebar.write(f"**{len(tickers)} unique tickers**")
 st.sidebar.divider()
 st.sidebar.markdown(
     """
-### Methodology
-
-**Returns**
-
-Daily = 1 trading day
-
-Weekly = 5 trading days
-
-Monthly = 21 trading days
-
-Semi-Annual = 126 trading days
-
-Annual = 252 trading days
-
-**Matched realised volatility**
-
-Monthly = 21 daily returns
-
-Semi-Annual = 126 daily returns
-
-Annual = 252 daily returns
-
-Volatility is annualised:
-
-**Daily volatility × √252**
-
-**Return / Volatility**
-
-Period return divided by matched annualised realised volatility.
-
-This is **not a Sharpe ratio** because the risk-free rate is not subtracted.
-
-**Weekly Heatmap**
-
-Weekly returns use the last available trading price for each Friday-ending week.
-
-The heatmap displays the most recent three years of weekly returns.
-    """
-)
-
+    
 if st.sidebar.button("🔄 Refresh data"):
     st.cache_data.clear()
     st.rerun()
