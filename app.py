@@ -51,24 +51,79 @@ with st.spinner("Loading market capitalisation and analyst estimates..."):
     fundamental_df = get_fundamental_data(tuple(tickers))
 
 # Top metrics
+# ============================================================
+# TOP METRICS
+# ============================================================
+
+# Tickers missing price data
+missing_price_tickers = [
+    ticker for ticker in tickers
+    if ticker not in price_data
+]
+
+# Tickers missing market cap
+missing_market_cap_tickers = []
+
+if (
+    fundamental_df is not None
+    and not fundamental_df.empty
+    and "Market Cap" in fundamental_df.columns
+):
+    market_cap_count = fundamental_df["Market Cap"].notna().sum()
+
+    missing_market_cap_tickers = (
+        fundamental_df.loc[
+            fundamental_df["Market Cap"].isna(),
+            "Ticker"
+        ]
+        .tolist()
+    )
+else:
+    market_cap_count = 0
+    missing_market_cap_tickers = tickers.copy()
+
+
 col1, col2 = st.columns(2)
+
 with col1:
-    st.metric("Universe", len(tickers))
+    st.metric(
+        "Universe",
+        len(tickers)
+    )
+
 with col2:
-    st.metric("Price Data", len(price_data))
+    st.metric(
+        "Price Data",
+        f"{len(price_data)} / {len(tickers)}"
+    )
+
+    if missing_price_tickers:
+        st.caption(
+            "Missing: "
+            + ", ".join(missing_price_tickers)
+        )
+
 
 col3, col4 = st.columns(2)
+
 with col3:
-    market_cap_count = 0
-    if (
-        fundamental_df is not None
-        and not fundamental_df.empty
-        and "Market Cap" in fundamental_df.columns
-    ):
-        market_cap_count = fundamental_df["Market Cap"].notna().sum()
-    st.metric("Market Caps", market_cap_count)
+    st.metric(
+        "Market Caps",
+        f"{market_cap_count} / {len(tickers)}"
+    )
+
+    if missing_market_cap_tickers:
+        st.caption(
+            "Missing: "
+            + ", ".join(missing_market_cap_tickers)
+        )
+
+
 with col4:
-    st.metric("Updated", datetime.now().strftime("%d %b %Y"))
+    st.metric(
+        "Updated",
+        datetime.now().strftime("%d %b %Y")
+    )
 
 # Feature modules
 show_heatmap(performance_df, fundamental_df)
