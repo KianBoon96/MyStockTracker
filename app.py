@@ -23,11 +23,6 @@ st.set_page_config(
 
 apply_global_css()
 
-# Sidebar
-st.sidebar.title("📊 Equity Dashboard")
-st.sidebar.write(f"**{len(tickers)} unique tickers**")
-st.sidebar.divider()
-
 # Header
 st.title("📊 Equity Factor & Momentum Dashboard")
 st.caption(
