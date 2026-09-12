@@ -1,5 +1,3 @@
-# Yahoo Finance data retrieval and performance calculations
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -84,10 +82,13 @@ def download_price_data(ticker_list):
                 download_one,
                 ticker
             ): ticker
+
             for ticker in ticker_list
         }
 
-        for future in as_completed(futures):
+        for future in as_completed(
+            futures
+        ):
 
             try:
 
@@ -122,12 +123,15 @@ def get_fundamental_data(ticker_list):
                 ticker,
                 "Other"
             ),
+
             "Current Price": np.nan,
             "Market Cap": np.nan,
-            "TTM EPS": np.nan,
-            "NTM EPS": np.nan,
+
+            "TTM Adjusted EPS": np.nan,
+            "Forward Adjusted EPS": np.nan,
+
             "TTM Revenue": np.nan,
-            "NTM Revenue": np.nan,
+            "Forward Revenue": np.nan,
         }
 
         symbol = yf_symbol(ticker)
@@ -137,7 +141,7 @@ def get_fundamental_data(ticker_list):
             stock = yf.Ticker(symbol)
 
             # =================================================
-            # CURRENT / TRAILING DATA
+            # INFO
             # =================================================
 
             try:
@@ -155,6 +159,7 @@ def get_fundamental_data(ticker_list):
                         errors="coerce"
                     )
 
+
                 market_cap = info.get("marketCap")
 
                 if market_cap is not None:
@@ -163,21 +168,6 @@ def get_fundamental_data(ticker_list):
                         errors="coerce"
                     )
 
-                trailing_eps = info.get("trailingEps")
-
-                if trailing_eps is not None:
-                    result["TTM EPS"] = pd.to_numeric(
-                        trailing_eps,
-                        errors="coerce"
-                    )
-
-                forward_eps = info.get("forwardEps")
-
-                if forward_eps is not None:
-                    result["NTM EPS"] = pd.to_numeric(
-                        forward_eps,
-                        errors="coerce"
-                    )
 
                 total_revenue = info.get("totalRevenue")
 
@@ -186,6 +176,108 @@ def get_fundamental_data(ticker_list):
                         total_revenue,
                         errors="coerce"
                     )
+
+            except Exception:
+                pass
+
+
+            # =================================================
+            # TTM NORMALIZED / ADJUSTED EPS
+            # =================================================
+
+            try:
+
+                income_stmt = stock.get_income_stmt(
+                    freq="trailing"
+                )
+
+                if (
+                    income_stmt is not None
+                    and not income_stmt.empty
+                ):
+
+                    adjusted_eps = np.nan
+
+
+                    if (
+                        "ReportedNormalizedDilutedEPS"
+                        in income_stmt.index
+                    ):
+
+                        values = pd.to_numeric(
+                            income_stmt.loc[
+                                "ReportedNormalizedDilutedEPS"
+                            ],
+                            errors="coerce"
+                        ).dropna()
+
+                        if not values.empty:
+                            adjusted_eps = values.iloc[0]
+
+
+                    if (
+                        pd.isna(adjusted_eps)
+                        and "NormalizedDilutedEPS"
+                        in income_stmt.index
+                    ):
+
+                        values = pd.to_numeric(
+                            income_stmt.loc[
+                                "NormalizedDilutedEPS"
+                            ],
+                            errors="coerce"
+                        ).dropna()
+
+                        if not values.empty:
+                            adjusted_eps = values.iloc[0]
+
+
+                    result[
+                        "TTM Adjusted EPS"
+                    ] = adjusted_eps
+
+            except Exception:
+                pass
+
+
+            # =================================================
+            # FORWARD EPS
+            # =================================================
+
+            try:
+
+                earnings_estimates = (
+                    stock.get_earnings_estimate()
+                )
+
+                if (
+                    earnings_estimates is not None
+                    and not earnings_estimates.empty
+                ):
+
+                    if "+1y" in earnings_estimates.index:
+
+                        result[
+                            "Forward Adjusted EPS"
+                        ] = pd.to_numeric(
+                            earnings_estimates.loc[
+                                "+1y",
+                                "avg"
+                            ],
+                            errors="coerce"
+                        )
+
+                    elif "0y" in earnings_estimates.index:
+
+                        result[
+                            "Forward Adjusted EPS"
+                        ] = pd.to_numeric(
+                            earnings_estimates.loc[
+                                "0y",
+                                "avg"
+                            ],
+                            errors="coerce"
+                        )
 
             except Exception:
                 pass
@@ -208,30 +300,31 @@ def get_fundamental_data(ticker_list):
 
                     if "+1y" in revenue_estimates.index:
 
-                        row = revenue_estimates.loc["+1y"]
-
-                        result["NTM Revenue"] = pd.to_numeric(
-                            row.get(
-                                "avg",
-                                np.nan
-                            ),
+                        result[
+                            "Forward Revenue"
+                        ] = pd.to_numeric(
+                            revenue_estimates.loc[
+                                "+1y",
+                                "avg"
+                            ],
                             errors="coerce"
                         )
 
                     elif "0y" in revenue_estimates.index:
 
-                        row = revenue_estimates.loc["0y"]
-
-                        result["NTM Revenue"] = pd.to_numeric(
-                            row.get(
-                                "avg",
-                                np.nan
-                            ),
+                        result[
+                            "Forward Revenue"
+                        ] = pd.to_numeric(
+                            revenue_estimates.loc[
+                                "0y",
+                                "avg"
+                            ],
                             errors="coerce"
                         )
 
             except Exception:
                 pass
+
 
         except Exception:
             pass
@@ -252,12 +345,16 @@ def get_fundamental_data(ticker_list):
                 get_one,
                 ticker
             ): ticker
+
             for ticker in ticker_list
         }
 
-        for future in as_completed(futures):
+        for future in as_completed(
+            futures
+        ):
 
             try:
+
                 rows.append(
                     future.result()
                 )
@@ -265,11 +362,12 @@ def get_fundamental_data(ticker_list):
             except Exception:
                 pass
 
+
     return pd.DataFrame(rows)
 
 
 # ============================================================
-# PERFORMANCE CALCULATION
+# PERFORMANCE
 # ============================================================
 
 def calculate_performance(price_data):
@@ -288,11 +386,13 @@ def calculate_performance(price_data):
             if len(prices) < 2:
                 continue
 
+
             daily_returns = (
                 prices
                 .pct_change()
                 .dropna()
             )
+
 
             row = {
                 "Ticker": ticker,
@@ -320,11 +420,12 @@ def calculate_performance(price_data):
                     ) - 1
 
                 else:
+
                     row[column] = np.nan
 
 
             # =================================================
-            # REALISED VOLATILITY
+            # VOLATILITY
             # =================================================
 
             for label, window in VOL_WINDOWS.items():
@@ -338,19 +439,20 @@ def calculate_performance(price_data):
                         .tail(window)
                     )
 
-                    volatility = (
+                    row[column] = (
                         recent_returns.std()
                         * np.sqrt(252)
                     )
 
-                    row[column] = volatility
-
                 else:
+
                     row[column] = np.nan
+
 
             rows.append(row)
 
         except Exception:
             continue
+
 
     return pd.DataFrame(rows)
