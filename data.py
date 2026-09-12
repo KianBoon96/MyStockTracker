@@ -167,47 +167,177 @@ def get_fundamental_data(ticker_list):
 
     rows = []
 
-
     def get_one(ticker):
 
         result = {
-
             "Ticker": ticker,
-
             "Category": category_map.get(
                 ticker,
                 "Other"
             ),
 
+            "Current Price": np.nan,
             "Market Cap": np.nan,
 
-            "EPS Next Year": np.nan,
+            "TTM EPS": np.nan,
+            "NTM EPS": np.nan,
 
-            "EPS Following Year": np.nan,
-
-            "Revenue Next Year": np.nan,
-
-            "Revenue Following Year": np.nan,
-
-            "EPS Growth Next Year": np.nan,
-
-            "EPS Growth Following Year": np.nan,
-
-            "Revenue Growth Next Year": np.nan,
-
-            "Revenue Growth Following Year": np.nan,
+            "TTM Revenue": np.nan,
+            "NTM Revenue": np.nan,
         }
-
 
         symbol = yf_symbol(ticker)
 
-
         try:
 
-            stock = yf.Ticker(
-                symbol
-            )
+            stock = yf.Ticker(symbol)
 
+            # =================================================
+            # YAHOO INFO
+            # =================================================
+
+            try:
+
+                info = stock.info or {}
+
+                # Current share price
+                current_price = (
+                    info.get("currentPrice")
+                    or info.get("regularMarketPrice")
+                )
+
+                if current_price is not None:
+                    result["Current Price"] = pd.to_numeric(
+                        current_price,
+                        errors="coerce"
+                    )
+
+                # Market capitalisation
+                market_cap = info.get("marketCap")
+
+                if market_cap is not None:
+                    result["Market Cap"] = pd.to_numeric(
+                        market_cap,
+                        errors="coerce"
+                    )
+
+                # Trailing 12-month EPS
+                trailing_eps = info.get("trailingEps")
+
+                if trailing_eps is not None:
+                    result["TTM EPS"] = pd.to_numeric(
+                        trailing_eps,
+                        errors="coerce"
+                    )
+
+                # Forward / next 12-month EPS
+                forward_eps = info.get("forwardEps")
+
+                if forward_eps is not None:
+                    result["NTM EPS"] = pd.to_numeric(
+                        forward_eps,
+                        errors="coerce"
+                    )
+
+                # Trailing 12-month revenue
+                total_revenue = info.get("totalRevenue")
+
+                if total_revenue is not None:
+                    result["TTM Revenue"] = pd.to_numeric(
+                        total_revenue,
+                        errors="coerce"
+                    )
+
+            except Exception:
+                pass
+
+            # =================================================
+            # FORWARD REVENUE ESTIMATE
+            # =================================================
+            #
+            # Yahoo Finance / yfinance does not consistently
+            # expose a true rolling NTM revenue number.
+            #
+            # We therefore use the next fiscal-year analyst
+            # revenue estimate as the forward revenue proxy.
+            # =================================================
+
+            try:
+
+                revenue_estimates = (
+                    stock.get_revenue_estimate()
+                )
+
+                if (
+                    revenue_estimates is not None
+                    and not revenue_estimates.empty
+                ):
+
+                    # Prefer +1y = next fiscal year
+                    if "+1y" in revenue_estimates.index:
+
+                        row = revenue_estimates.loc["+1y"]
+
+                        result["NTM Revenue"] = pd.to_numeric(
+                            row.get(
+                                "avg",
+                                np.nan
+                            ),
+                            errors="coerce"
+                        )
+
+                    # Fallback to current FY estimate
+                    elif "0y" in revenue_estimates.index:
+
+                        row = revenue_estimates.loc["0y"]
+
+                        result["NTM Revenue"] = pd.to_numeric(
+                            row.get(
+                                "avg",
+                                np.nan
+                            ),
+                            errors="coerce"
+                        )
+
+            except Exception:
+                pass
+
+        except Exception:
+            pass
+
+        return result
+
+
+    # ========================================================
+    # PARALLEL FUNDAMENTALS DOWNLOAD
+    # ========================================================
+
+    with ThreadPoolExecutor(
+        max_workers=6
+    ) as executor:
+
+        futures = {
+            executor.submit(
+                get_one,
+                ticker
+            ): ticker
+
+            for ticker in ticker_list
+        }
+
+        for future in as_completed(
+            futures
+        ):
+
+            try:
+                rows.append(
+                    future.result()
+                )
+
+            except Exception:
+                pass
+
+    return pd.DataFrame(rows)
 
             # =================================================
             # MARKET CAP
