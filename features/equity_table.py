@@ -35,7 +35,10 @@ def apply_equity_table_css():
 # HELPERS
 # ============================================================
 
-def safe_divide(numerator, denominator):
+def safe_divide(
+    numerator,
+    denominator
+):
 
     numerator = pd.to_numeric(
         numerator,
@@ -81,6 +84,14 @@ def format_multiple(value):
     return f"{value:,.1f}x"
 
 
+def format_percentage(value):
+
+    if pd.isna(value):
+        return "—"
+
+    return f"{value * 100:,.1f}%"
+
+
 def format_revenue(value):
 
     if pd.isna(value):
@@ -89,23 +100,21 @@ def format_revenue(value):
     value = float(value)
 
     if abs(value) >= 1_000_000_000_000:
-        return f"${value / 1_000_000_000_000:,.2f}T"
+        return (
+            f"${value / 1_000_000_000_000:,.2f}T"
+        )
 
     if abs(value) >= 1_000_000_000:
-        return f"${value / 1_000_000_000:,.2f}B"
+        return (
+            f"${value / 1_000_000_000:,.2f}B"
+        )
 
     if abs(value) >= 1_000_000:
-        return f"${value / 1_000_000:,.2f}M"
+        return (
+            f"${value / 1_000_000:,.2f}M"
+        )
 
     return f"${value:,.0f}"
-
-
-def format_percentage(value):
-
-    if pd.isna(value):
-        return "—"
-
-    return f"{value * 100:,.1f}%"
 
 
 # ============================================================
@@ -121,28 +130,32 @@ def prepare_valuation_table(
         fundamental_df is None
         or fundamental_df.empty
     ):
+
         return pd.DataFrame()
 
 
-    fundamentals = fundamental_df.copy()
+    fundamentals = (
+        fundamental_df.copy()
+    )
 
 
     # ========================================================
-    # ENSURE FUNDAMENTAL COLUMNS EXIST
+    # REQUIRED FUNDAMENTAL COLUMNS
     # ========================================================
 
-    fundamental_columns = [
+    required_columns = [
         "Ticker",
         "Category",
         "Current Price",
         "Market Cap",
-        "TTM EPS",
-        "NTM EPS",
+        "TTM Adjusted EPS",
+        "Forward Adjusted EPS",
         "TTM Revenue",
-        "NTM Revenue",
+        "Forward Revenue",
     ]
 
-    for column in fundamental_columns:
+
+    for column in required_columns:
 
         if column not in fundamentals.columns:
             fundamentals[column] = np.nan
@@ -152,39 +165,47 @@ def prepare_valuation_table(
     # VALUATION MULTIPLES
     # ========================================================
 
-    fundamentals["P/E TTM"] = fundamentals.apply(
-        lambda row: safe_divide(
-            row["Current Price"],
-            row["TTM EPS"]
-        ),
-        axis=1
+    fundamentals["P/E TTM"] = (
+        fundamentals.apply(
+            lambda row: safe_divide(
+                row["Current Price"],
+                row["TTM Adjusted EPS"]
+            ),
+            axis=1
+        )
     )
 
 
-    fundamentals["P/E NTM"] = fundamentals.apply(
-        lambda row: safe_divide(
-            row["Current Price"],
-            row["NTM EPS"]
-        ),
-        axis=1
+    fundamentals["P/E Forward"] = (
+        fundamentals.apply(
+            lambda row: safe_divide(
+                row["Current Price"],
+                row["Forward Adjusted EPS"]
+            ),
+            axis=1
+        )
     )
 
 
-    fundamentals["P/S TTM"] = fundamentals.apply(
-        lambda row: safe_divide(
-            row["Market Cap"],
-            row["TTM Revenue"]
-        ),
-        axis=1
+    fundamentals["P/S TTM"] = (
+        fundamentals.apply(
+            lambda row: safe_divide(
+                row["Market Cap"],
+                row["TTM Revenue"]
+            ),
+            axis=1
+        )
     )
 
 
-    fundamentals["P/S NTM"] = fundamentals.apply(
-        lambda row: safe_divide(
-            row["Market Cap"],
-            row["NTM Revenue"]
-        ),
-        axis=1
+    fundamentals["P/S Forward"] = (
+        fundamentals.apply(
+            lambda row: safe_divide(
+                row["Market Cap"],
+                row["Forward Revenue"]
+            ),
+            axis=1
+        )
     )
 
 
@@ -207,7 +228,10 @@ def prepare_valuation_table(
         and not performance_df.empty
     ):
 
-        performance = performance_df.copy()
+        performance = (
+            performance_df.copy()
+        )
+
 
         for column in performance_columns:
 
@@ -251,15 +275,17 @@ def prepare_valuation_table(
             "Annual Return",
             "Annual Volatility",
 
-            "TTM EPS",
-            "NTM EPS",
+            "TTM Adjusted EPS",
+            "Forward Adjusted EPS",
+
             "P/E TTM",
-            "P/E NTM",
+            "P/E Forward",
 
             "TTM Revenue",
-            "NTM Revenue",
+            "Forward Revenue",
+
             "P/S TTM",
-            "P/S NTM",
+            "P/S Forward",
         ]
     ]
 
@@ -282,11 +308,14 @@ def apply_filters(df):
             .tolist()
         )
 
-        selected_categories = st.multiselect(
-            "Industry / Category",
-            categories,
-            default=categories,
-            key="valuation_categories"
+
+        selected_categories = (
+            st.multiselect(
+                "Industry / Category",
+                categories,
+                default=categories,
+                key="valuation_categories"
+            )
         )
 
 
@@ -299,11 +328,14 @@ def apply_filters(df):
             .tolist()
         )
 
-        selected_tickers = st.multiselect(
-            "Compare specific tickers",
-            tickers,
-            default=[],
-            key="valuation_tickers"
+
+        selected_tickers = (
+            st.multiselect(
+                "Compare specific tickers",
+                tickers,
+                default=[],
+                key="valuation_tickers"
+            )
         )
 
 
@@ -351,7 +383,7 @@ def apply_filters(df):
 
 
 # ============================================================
-# DISPLAY FORMATTING
+# FORMAT TABLE
 # ============================================================
 
 def format_valuation_table(df):
@@ -365,7 +397,7 @@ def format_valuation_table(df):
     )
 
 
-    return_columns = [
+    percentage_columns = [
         "Daily Return",
         "Weekly Return",
         "Monthly Return",
@@ -373,7 +405,8 @@ def format_valuation_table(df):
         "Annual Volatility",
     ]
 
-    for column in return_columns:
+
+    for column in percentage_columns:
 
         display[column] = (
             display[column]
@@ -381,14 +414,14 @@ def format_valuation_table(df):
         )
 
 
-    display["TTM EPS"] = (
-        display["TTM EPS"]
+    display["TTM Adjusted EPS"] = (
+        display["TTM Adjusted EPS"]
         .apply(format_eps)
     )
 
 
-    display["NTM EPS"] = (
-        display["NTM EPS"]
+    display["Forward Adjusted EPS"] = (
+        display["Forward Adjusted EPS"]
         .apply(format_eps)
     )
 
@@ -399,8 +432,8 @@ def format_valuation_table(df):
     )
 
 
-    display["P/E NTM"] = (
-        display["P/E NTM"]
+    display["P/E Forward"] = (
+        display["P/E Forward"]
         .apply(format_multiple)
     )
 
@@ -411,8 +444,8 @@ def format_valuation_table(df):
     )
 
 
-    display["NTM Revenue"] = (
-        display["NTM Revenue"]
+    display["Forward Revenue"] = (
+        display["Forward Revenue"]
         .apply(format_revenue)
     )
 
@@ -423,8 +456,8 @@ def format_valuation_table(df):
     )
 
 
-    display["P/S NTM"] = (
-        display["P/S NTM"]
+    display["P/S Forward"] = (
+        display["P/S Forward"]
         .apply(format_multiple)
     )
 
@@ -452,14 +485,17 @@ def show_equity_table(
 
 
     st.caption(
-        "Price, returns, realised volatility, "
-        "earnings multiples and revenue multiples."
+        "Returns, annualised realised volatility, "
+        "adjusted earnings multiples and "
+        "revenue multiples."
     )
 
 
-    valuation_df = prepare_valuation_table(
-        performance_df,
-        fundamental_df
+    valuation_df = (
+        prepare_valuation_table(
+            performance_df,
+            fundamental_df
+        )
     )
 
 
@@ -493,15 +529,18 @@ def show_equity_table(
             [
                 "Ticker",
                 "Current Price",
+
                 "Daily Return",
                 "Weekly Return",
                 "Monthly Return",
                 "Annual Return",
                 "Annual Volatility",
+
                 "P/E TTM",
-                "P/E NTM",
+                "P/E Forward",
+
                 "P/S TTM",
-                "P/S NTM",
+                "P/S Forward",
             ],
             key="valuation_sort"
         )
@@ -516,10 +555,12 @@ def show_equity_table(
         )
 
 
-    filtered_df = filtered_df.sort_values(
-        by=sort_by,
-        ascending=ascending,
-        na_position="last"
+    filtered_df = (
+        filtered_df.sort_values(
+            by=sort_by,
+            ascending=ascending,
+            na_position="last"
+        )
     )
 
 
@@ -529,11 +570,13 @@ def show_equity_table(
 
 
     # ========================================================
-    # DISPLAY TABLE
+    # DISPLAY
     # ========================================================
 
-    display_df = format_valuation_table(
-        filtered_df
+    display_df = (
+        format_valuation_table(
+            filtered_df
+        )
     )
 
 
@@ -546,9 +589,10 @@ def show_equity_table(
 
 
     st.caption(
-        "Annual Volatility is annualised realised volatility. "
-        "P/E TTM = Current Price ÷ TTM EPS • "
-        "P/E NTM = Current Price ÷ Forward EPS • "
+        "TTM Adjusted EPS uses Yahoo normalized EPS where "
+        "available. Forward Adjusted EPS uses analyst forward "
+        "EPS estimates. P/E TTM = Price ÷ TTM Adjusted EPS • "
+        "P/E Forward = Price ÷ Forward Adjusted EPS • "
         "P/S TTM = Market Cap ÷ TTM Revenue • "
-        "P/S NTM = Market Cap ÷ Forward Revenue estimate"
+        "P/S Forward = Market Cap ÷ Forward Revenue"
     )
