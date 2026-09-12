@@ -354,24 +354,22 @@ for category, symbols in groups.items():
 
 
 # ============================================================
-# YAHOO FINANCE SYMBOL ALIASES
+# YAHOO FINANCE SYMBOL HANDLING
 # ============================================================
 
-yf_aliases = {
-
-    "SKHY": "000660.KS",
-
-    "VSXY": "VSCO",
-}
+# All tickers in the current universe use their current
+# Yahoo Finance symbols directly.
+YF_ALIASES = {}
 
 
 def yf_symbol(ticker):
+    """
+    Return the Yahoo Finance symbol for a dashboard ticker.
 
-    return yf_aliases.get(
-        ticker,
-        ticker
-    )
-
+    If an alias is added in the future, it will be used.
+    Otherwise, the original ticker is returned unchanged.
+    """
+    return YF_ALIASES.get(ticker, ticker)
 
 # ============================================================
 # TIME WINDOWS
