@@ -13,12 +13,15 @@ from config import yf_symbol
 # ============================================================
 
 def apply_stock_detail_css():
+
     st.markdown(
         """
         <style>
+
         div[data-testid="stPlotlyChart"] {
             width: 100% !important;
         }
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -29,11 +32,16 @@ def apply_stock_detail_css():
 # DOWNLOAD STOCK HISTORY
 # ============================================================
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(
+    ttl=3600,
+    show_spinner=False
+)
 def download_stock_history(ticker):
+
     symbol = yf_symbol(ticker)
 
     try:
+
         data = yf.download(
             symbol,
             period="5y",
@@ -46,32 +54,106 @@ def download_stock_history(ticker):
         if data is None or data.empty:
             return pd.DataFrame()
 
-        if isinstance(data.columns, pd.MultiIndex):
-            if "Close" not in data.columns.get_level_values(0):
-                return pd.DataFrame()
 
-            close = data["Close"]
+        # ====================================================
+        # HANDLE YFINANCE MULTIINDEX
+        # ====================================================
 
-            if isinstance(close, pd.DataFrame):
-                close = close.iloc[:, 0]
+        if isinstance(
+            data.columns,
+            pd.MultiIndex
+        ):
+
+            clean_data = pd.DataFrame()
+
+            for column in [
+                "Open",
+                "High",
+                "Low",
+                "Close",
+                "Volume",
+            ]:
+
+                if (
+                    column
+                    in data.columns.get_level_values(0)
+                ):
+
+                    values = data[column]
+
+                    if isinstance(
+                        values,
+                        pd.DataFrame
+                    ):
+                        values = values.iloc[:, 0]
+
+                    clean_data[column] = (
+                        pd.to_numeric(
+                            values,
+                            errors="coerce"
+                        )
+                    )
+
+            data = clean_data
+
+
+        # ====================================================
+        # NORMAL COLUMNS
+        # ====================================================
+
         else:
-            if "Close" not in data.columns:
-                return pd.DataFrame()
 
-            close = data["Close"]
+            available_columns = [
+                column
+                for column in [
+                    "Open",
+                    "High",
+                    "Low",
+                    "Close",
+                    "Volume",
+                ]
+                if column in data.columns
+            ]
 
-        df = pd.DataFrame({
-            "Close": pd.to_numeric(close, errors="coerce")
-        }).dropna()
+            data = data[
+                available_columns
+            ].copy()
 
-        df.index = pd.to_datetime(df.index)
 
-        if getattr(df.index, "tz", None) is not None:
-            df.index = df.index.tz_localize(None)
+        if "Close" not in data.columns:
+            return pd.DataFrame()
 
-        return df
+
+        data = data.dropna(
+            subset=["Close"]
+        )
+
+
+        data.index = pd.to_datetime(
+            data.index
+        )
+
+
+        if (
+            getattr(
+                data.index,
+                "tz",
+                None
+            )
+            is not None
+        ):
+
+            data.index = (
+                data.index
+                .tz_localize(None)
+            )
+
+
+        return data
+
 
     except Exception:
+
         return pd.DataFrame()
 
 
@@ -79,38 +161,79 @@ def download_stock_history(ticker):
 # DOWNLOAD EARNINGS DATES
 # ============================================================
 
-@st.cache_data(ttl=21600, show_spinner=False)
+@st.cache_data(
+    ttl=21600,
+    show_spinner=False
+)
 def download_earnings_dates(ticker):
+
     symbol = yf_symbol(ticker)
 
     try:
-        stock = yf.Ticker(symbol)
-        earnings = stock.get_earnings_dates(limit=40)
 
-        if earnings is None or earnings.empty:
+        stock = yf.Ticker(
+            symbol
+        )
+
+
+        earnings = (
+            stock.get_earnings_dates(
+                limit=40
+            )
+        )
+
+
+        if (
+            earnings is None
+            or earnings.empty
+        ):
+
             return []
+
 
         dates = pd.to_datetime(
             earnings.index,
             errors="coerce",
         )
 
+
         clean_dates = []
 
+
         for date in dates:
+
             if pd.isna(date):
                 continue
 
-            date = pd.Timestamp(date)
+
+            date = pd.Timestamp(
+                date
+            )
+
 
             if date.tzinfo is not None:
-                date = date.tz_localize(None)
 
-            clean_dates.append(date)
+                date = (
+                    date.tz_localize(
+                        None
+                    )
+                )
 
-        return sorted(set(clean_dates))
+
+            clean_dates.append(
+                date
+            )
+
+
+        return sorted(
+            set(
+                clean_dates
+            )
+        )
+
 
     except Exception:
+
         return []
 
 
@@ -118,68 +241,244 @@ def download_earnings_dates(ticker):
 # PRICE CHART
 # ============================================================
 
-def render_price_chart(ticker, price_df, earnings_dates):
+def render_price_chart(
+    ticker,
+    price_df,
+    earnings_dates,
+    chart_type
+):
+
     if price_df.empty:
-        st.warning(f"No price history available for {ticker}.")
+
+        st.warning(
+            f"No price history available for {ticker}."
+        )
+
         return
+
 
     fig = go.Figure()
 
-    fig.add_trace(
-        go.Scatter(
-            x=price_df.index,
-            y=price_df["Close"],
-            mode="lines",
-            name=ticker,
-            line=dict(width=2),
-            hovertemplate=(
-                "<b>%{x|%d %b %Y}</b><br>"
-                "Price: $%{y:,.2f}"
-                "<extra></extra>"
-            ),
+
+    # ========================================================
+    # LINE CHART
+    # ========================================================
+
+    if chart_type == "Line":
+
+        fig.add_trace(
+            go.Scatter(
+                x=price_df.index,
+                y=price_df["Close"],
+                mode="lines",
+                name=ticker,
+                line=dict(
+                    width=2
+                ),
+                hovertemplate=(
+                    "<b>%{x|%d %b %Y}</b><br>"
+                    "Price: $%{y:,.2f}"
+                    "<extra></extra>"
+                ),
+            )
         )
+
+
+    # ========================================================
+    # CANDLESTICK CHART
+    # ========================================================
+
+    else:
+
+        required_columns = [
+            "Open",
+            "High",
+            "Low",
+            "Close",
+        ]
+
+
+        if not all(
+            column in price_df.columns
+            for column in required_columns
+        ):
+
+            st.warning(
+                "OHLC data is unavailable for "
+                "this stock. Showing line chart instead."
+            )
+
+
+            fig.add_trace(
+                go.Scatter(
+                    x=price_df.index,
+                    y=price_df["Close"],
+                    mode="lines",
+                    name=ticker,
+                )
+            )
+
+
+        else:
+
+            fig.add_trace(
+                go.Candlestick(
+                    x=price_df.index,
+
+                    open=price_df[
+                        "Open"
+                    ],
+
+                    high=price_df[
+                        "High"
+                    ],
+
+                    low=price_df[
+                        "Low"
+                    ],
+
+                    close=price_df[
+                        "Close"
+                    ],
+
+                    name=ticker,
+
+                    increasing_line_color="#00C853",
+                    decreasing_line_color="#FF1744",
+
+                    hovertext=[
+                        (
+                            f"{date:%d %b %Y}"
+                        )
+                        for date
+                        in price_df.index
+                    ],
+                )
+            )
+
+
+    # ========================================================
+    # EARNINGS DATES
+    # ========================================================
+
+    start_date = (
+        price_df.index.min()
     )
 
-    start_date = price_df.index.min()
-    end_date = price_df.index.max()
+    end_date = (
+        price_df.index.max()
+    )
+
 
     visible_earnings = [
         date
         for date in earnings_dates
-        if start_date <= date <= end_date
+        if start_date
+        <= date
+        <= end_date
     ]
 
+
     for date in visible_earnings:
+
         fig.add_vline(
             x=date,
             line_width=1,
             line_dash="dot",
             line_color="gray",
-            opacity=0.65,
+            opacity=0.7,
         )
 
+
+    # ========================================================
+    # LAYOUT
+    # ========================================================
+
     fig.update_layout(
-        title=f"{ticker} Price History",
+        title=(
+            f"{ticker} Price History"
+        ),
+
         xaxis_title="",
+
         yaxis_title="Price",
-        hovermode="x unified",
-        margin=dict(l=10, r=10, t=55, b=10),
-        height=500,
-        legend=dict(orientation="h"),
+
+        hovermode=(
+            "x unified"
+            if chart_type == "Line"
+            else "closest"
+        ),
+
+        margin=dict(
+            l=10,
+            r=10,
+            t=55,
+            b=10,
+        ),
+
+        height=550,
+
+        legend=dict(
+            orientation="h"
+        ),
     )
 
+
+    # ========================================================
+    # RANGE BUTTONS
+    # ========================================================
+
     fig.update_xaxes(
+
         rangeslider_visible=False,
+
         rangeselector=dict(
+
             buttons=[
-                dict(count=3, label="3M", step="month", stepmode="backward"),
-                dict(count=6, label="6M", step="month", stepmode="backward"),
-                dict(count=1, label="1Y", step="year", stepmode="backward"),
-                dict(count=2, label="2Y", step="year", stepmode="backward"),
-                dict(step="all", label="5Y"),
+
+                dict(
+                    count=1,
+                    label="1M",
+                    step="month",
+                    stepmode="backward",
+                ),
+
+                dict(
+                    count=3,
+                    label="3M",
+                    step="month",
+                    stepmode="backward",
+                ),
+
+                dict(
+                    count=6,
+                    label="6M",
+                    step="month",
+                    stepmode="backward",
+                ),
+
+                dict(
+                    count=1,
+                    label="1Y",
+                    step="year",
+                    stepmode="backward",
+                ),
+
+                dict(
+                    count=2,
+                    label="2Y",
+                    step="year",
+                    stepmode="backward",
+                ),
+
+                dict(
+                    step="all",
+                    label="5Y",
+                ),
             ]
         ),
     )
+
 
     st.plotly_chart(
         fig,
@@ -188,18 +487,22 @@ def render_price_chart(ticker, price_df, earnings_dates):
             "responsive": True,
             "displayModeBar": False,
             "displaylogo": False,
-        },
+        }
     )
 
+
     if visible_earnings:
+
         st.caption(
-            f"Dotted vertical lines represent historical earnings dates. "
-            f"{len(visible_earnings)} earnings dates are shown."
+            "Dotted vertical lines represent "
+            "historical earnings dates."
         )
+
     else:
+
         st.caption(
-            "No historical earnings dates were returned by Yahoo Finance "
-            "for the selected period."
+            "No historical earnings dates were "
+            "returned by Yahoo Finance for this period."
         )
 
 
@@ -207,49 +510,94 @@ def render_price_chart(ticker, price_df, earnings_dates):
 # WEEKLY RETURNS
 # ============================================================
 
-def calculate_weekly_returns(price_df):
+def calculate_weekly_returns(
+    price_df
+):
+
     if price_df.empty:
         return pd.DataFrame()
 
+
     weekly_prices = (
         price_df["Close"]
-        .resample("W-FRI")
+        .resample(
+            "W-FRI"
+        )
         .last()
         .dropna()
     )
 
+
     weekly_returns = (
         weekly_prices
-        .pct_change(fill_method=None)
+        .pct_change(
+            fill_method=None
+        )
         .dropna()
     )
 
-    weekly_df = pd.DataFrame({
-        "Weekly Return": weekly_returns
-    })
+
+    weekly_df = pd.DataFrame(
+        {
+            "Weekly Return":
+            weekly_returns
+        }
+    )
+
 
     iso_calendar = (
         weekly_df.index
         .to_series()
-        .dt.isocalendar()
+        .dt
+        .isocalendar()
     )
 
-    weekly_df["Year"] = iso_calendar["year"].astype(int).values
-    weekly_df["Week"] = iso_calendar["week"].astype(int).values
+
+    weekly_df["Year"] = (
+        iso_calendar[
+            "year"
+        ]
+        .astype(int)
+        .values
+    )
+
+
+    weekly_df["Week"] = (
+        iso_calendar[
+            "week"
+        ]
+        .astype(int)
+        .values
+    )
+
 
     return weekly_df
 
 
 # ============================================================
-# WEEKLY RETURN HEATMAP
+# WEEKLY HEATMAP
 # ============================================================
 
-def render_weekly_heatmap(ticker, price_df):
-    weekly_df = calculate_weekly_returns(price_df)
+def render_weekly_heatmap(
+    ticker,
+    price_df
+):
+
+    weekly_df = (
+        calculate_weekly_returns(
+            price_df
+        )
+    )
+
 
     if weekly_df.empty:
-        st.warning("Not enough data to calculate weekly returns.")
+
+        st.warning(
+            "Not enough data to calculate weekly returns."
+        )
+
         return
+
 
     heatmap_df = (
         weekly_df
@@ -259,22 +607,35 @@ def render_weekly_heatmap(ticker, price_df):
             values="Weekly Return",
             aggfunc="last",
         )
-        .sort_index(ascending=False)
+        .sort_index(
+            ascending=False
+        )
     )
 
-    heatmap_percent = heatmap_df * 100
+
+    heatmap_percent = (
+        heatmap_df * 100
+    )
+
 
     fig = px.imshow(
         heatmap_percent,
+
         aspect="auto",
-        color_continuous_scale="RdYlGn",
+
+        color_continuous_scale=(
+            "RdYlGn"
+        ),
+
         color_continuous_midpoint=0,
+
         labels={
             "x": "Week",
             "y": "Year",
             "color": "Return %",
         },
     )
+
 
     fig.update_traces(
         hovertemplate=(
@@ -285,18 +646,34 @@ def render_weekly_heatmap(ticker, price_df):
         )
     )
 
+
     fig.update_layout(
-        title=f"{ticker} Weekly Returns Heatmap",
-        margin=dict(l=10, r=10, t=55, b=10),
+
+        title=(
+            f"{ticker} Weekly Returns Heatmap"
+        ),
+
+        margin=dict(
+            l=10,
+            r=10,
+            t=55,
+            b=10,
+        ),
+
         height=420,
     )
+
 
     fig.update_xaxes(
         dtick=4,
         title="Week of Year",
     )
 
-    fig.update_yaxes(title="")
+
+    fig.update_yaxes(
+        title=""
+    )
+
 
     st.plotly_chart(
         fig,
@@ -305,12 +682,13 @@ def render_weekly_heatmap(ticker, price_df):
             "responsive": True,
             "displayModeBar": False,
             "displaylogo": False,
-        },
+        }
     )
 
+
     st.caption(
-        "Each cell represents the stock's return for that week. "
-        "Green = positive return • Red = negative return."
+        "Each cell represents the stock's weekly return. "
+        "Green = positive • Red = negative."
     )
 
 
@@ -318,52 +696,128 @@ def render_weekly_heatmap(ticker, price_df):
 # SUMMARY METRICS
 # ============================================================
 
-def render_stock_metrics(price_df):
-    if price_df is None or price_df.empty or len(price_df) < 2:
+def render_stock_metrics(
+    price_df
+):
+
+    if (
+        price_df is None
+        or price_df.empty
+        or len(price_df) < 2
+    ):
+
         return
 
-    current_price = price_df["Close"].iloc[-1]
+
+    current_price = (
+        price_df["Close"]
+        .iloc[-1]
+    )
+
 
     daily_return = (
-        current_price / price_df["Close"].iloc[-2] - 1
+        current_price
+        /
+        price_df["Close"].iloc[-2]
+        - 1
     )
+
 
     weekly_return = (
-        current_price / price_df["Close"].iloc[-6] - 1
+
+        current_price
+        /
+        price_df["Close"].iloc[-6]
+        - 1
+
         if len(price_df) > 5
+
         else np.nan
     )
+
 
     monthly_return = (
-        current_price / price_df["Close"].iloc[-22] - 1
+
+        current_price
+        /
+        price_df["Close"].iloc[-22]
+        - 1
+
         if len(price_df) > 21
+
         else np.nan
     )
+
 
     annual_return = (
-        current_price / price_df["Close"].iloc[-253] - 1
+
+        current_price
+        /
+        price_df["Close"].iloc[-253]
+        - 1
+
         if len(price_df) > 252
+
         else np.nan
     )
 
-    columns = st.columns(5)
 
-    columns[0].metric("Price", f"${current_price:,.2f}")
+    columns = st.columns(
+        5
+    )
+
+
+    columns[0].metric(
+        "Price",
+        f"${current_price:,.2f}"
+    )
+
+
     columns[1].metric(
         "Daily",
-        f"{daily_return:+.2%}" if pd.notna(daily_return) else "—",
+        (
+            f"{daily_return:+.2%}"
+            if pd.notna(
+                daily_return
+            )
+            else "—"
+        )
     )
+
+
     columns[2].metric(
         "Weekly",
-        f"{weekly_return:+.2%}" if pd.notna(weekly_return) else "—",
+        (
+            f"{weekly_return:+.2%}"
+            if pd.notna(
+                weekly_return
+            )
+            else "—"
+        )
     )
+
+
     columns[3].metric(
         "Monthly",
-        f"{monthly_return:+.2%}" if pd.notna(monthly_return) else "—",
+        (
+            f"{monthly_return:+.2%}"
+            if pd.notna(
+                monthly_return
+            )
+            else "—"
+        )
     )
+
+
     columns[4].metric(
         "1 Year",
-        f"{annual_return:+.2%}" if pd.notna(annual_return) else "—",
+        (
+            f"{annual_return:+.2%}"
+            if pd.notna(
+                annual_return
+            )
+            else "—"
+        )
     )
 
 
@@ -371,45 +825,141 @@ def render_stock_metrics(price_df):
 # MAIN FEATURE
 # ============================================================
 
-def show_stock_detail(ticker_list):
+def show_stock_detail(
+    ticker_list
+):
+
     apply_stock_detail_css()
 
     st.divider()
-    st.header("3. Individual Stock Analysis")
+
+
+    st.header(
+        "3. Individual Stock Analysis"
+    )
+
 
     st.caption(
         "Select a stock to view its historical price, "
         "earnings dates and weekly return pattern."
     )
 
+
     if not ticker_list:
-        st.warning("No tickers are available.")
+
+        st.warning(
+            "No tickers are available."
+        )
+
         return
 
-    selected_ticker = st.selectbox(
-        "Select Stock",
-        options=sorted(ticker_list),
-        key="individual_stock_selector",
+
+    # ========================================================
+    # STOCK + CHART TYPE SELECTOR
+    # ========================================================
+
+    col1, col2 = st.columns(
+        [2, 1]
     )
 
-    with st.spinner(f"Loading {selected_ticker}..."):
-        price_df = download_stock_history(selected_ticker)
-        earnings_dates = download_earnings_dates(selected_ticker)
+
+    with col1:
+
+        selected_ticker = (
+            st.selectbox(
+                "Select Stock",
+                options=sorted(
+                    ticker_list
+                ),
+                key=(
+                    "individual_stock_selector"
+                ),
+            )
+        )
+
+
+    with col2:
+
+        chart_type = (
+            st.radio(
+                "Chart Type",
+                [
+                    "Line",
+                    "Candlestick",
+                ],
+                horizontal=True,
+                key=(
+                    "stock_chart_type"
+                ),
+            )
+        )
+
+
+    # ========================================================
+    # DOWNLOAD DATA
+    # ========================================================
+
+    with st.spinner(
+        f"Loading {selected_ticker}..."
+    ):
+
+        price_df = (
+            download_stock_history(
+                selected_ticker
+            )
+        )
+
+        earnings_dates = (
+            download_earnings_dates(
+                selected_ticker
+            )
+        )
+
 
     if price_df.empty:
-        st.warning(f"No data available for {selected_ticker}.")
+
+        st.warning(
+            f"No data available for {selected_ticker}."
+        )
+
         return
 
-    render_stock_metrics(price_df)
 
-    st.subheader("Price & Earnings History")
+    # ========================================================
+    # METRICS
+    # ========================================================
+
+    render_stock_metrics(
+        price_df
+    )
+
+
+    # ========================================================
+    # PRICE CHART
+    # ========================================================
+
+    st.subheader(
+        "Price & Earnings History"
+    )
+
+
     render_price_chart(
         selected_ticker,
         price_df,
         earnings_dates,
+        chart_type,
     )
 
-    st.subheader("Weekly Returns")
+
+    # ========================================================
+    # WEEKLY HEATMAP
+    # ========================================================
+
+    st.subheader(
+        "Weekly Returns"
+    )
+
+
     render_weekly_heatmap(
         selected_ticker,
         price_df,
