@@ -27,10 +27,6 @@ apply_global_css()
 st.sidebar.title("📊 Equity Dashboard")
 st.sidebar.write(f"**{len(tickers)} unique tickers**")
 st.sidebar.divider()
-st.sidebar.markdown(
-if st.sidebar.button("🔄 Refresh data"):
-    st.cache_data.clear()
-    st.rerun()
 
 # Header
 st.title("📊 Equity Factor & Momentum Dashboard")
